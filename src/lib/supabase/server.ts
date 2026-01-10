@@ -15,12 +15,11 @@ export async function createClient() {
 
   const cookieMethods: CookieMethodsServer = {
     getAll() {
-      return cookieStore.getAll().map((c) => ({
+      return cookieStore.getAll().map((c: { name: string; value: string }) => ({
         name: c.name,
         value: c.value,
       }));
     },
-
     setAll(cookiesToSet) {
       for (const c of cookiesToSet) {
         try {
@@ -31,13 +30,11 @@ export async function createClient() {
           });
         } catch {
           // Server Components context-ში cookie write შეიძლება აიკრძალოს.
-          // Route Handler / Middleware-ში იმუშავებს სრულად.
+          // Server Actions / Route Handlers / Middleware-ში იმუშავებს.
         }
       }
     },
   };
 
-  return createServerClient(url, anonKey, {
-    cookies: cookieMethods,
-  });
+  return createServerClient(url, anonKey, { cookies: cookieMethods });
 }

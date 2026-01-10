@@ -3,56 +3,12 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-/* ---------- helpers ---------- */
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === "string") return error;
-  if (typeof error === "object" && error !== null && "message" in error) {
-    const m = (error as { message?: unknown }).message;
-    if (typeof m === "string") return m;
-  }
-  return "Authentication error";
-}
-
-/* ---------- SIGN IN ---------- */
-export async function signInAction(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-
-  if (!email || !password) {
-    redirect(
-      "/auth/sign-in?error=" +
-        encodeURIComponent("Email and password are required")
-    );
-  }
-
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    redirect(
-      "/auth/sign-in?error=" +
-        encodeURIComponent(getErrorMessage(error))
-    );
-  }
-
-  redirect("/dashboard");
-}
-
-/* ---------- SIGN UP ---------- */
 export async function signUpAction(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+  const email = String(formData.get("email") || "").trim();
+  const password = String(formData.get("password") || "");
 
   if (!email || !password) {
-    redirect(
-      "/auth/sign-up?error=" +
-        encodeURIComponent("Email and password are required")
-    );
+    return { ok: false, message: "Email და პაროლი აუცილებელია." };
   }
 
   const supabase = await createClient();
@@ -62,20 +18,33 @@ export async function signUpAction(formData: FormData) {
     password,
   });
 
-  if (error) {
-    redirect(
-      "/auth/sign-up?error=" +
-        encodeURIComponent(getErrorMessage(error))
-    );
-  }
+  if (error) return { ok: false, message: error.message };
 
-  redirect(
-    "/auth/sign-in?success=" +
-      encodeURIComponent("Account created. Please sign in.")
-  );
+  // სურვილისამებრ redirect:
+  // redirect("/auth/sign-in?success=" + encodeURIComponent("რეგისტრაცია დასრულდა. ახლა შედი სისტემაში."));
+  return { ok: true, message: "რეგისტრაცია დასრულდა. ახლა შედი სისტემაში." };
 }
 
-/* ---------- SIGN OUT ---------- */
+export async function signInAction(formData: FormData) {
+  const email = String(formData.get("email") || "").trim();
+  const password = String(formData.get("password") || "");
+
+  if (!email || !password) {
+    return { ok: false, message: "Email და პაროლი აუცილებელია." };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) return { ok: false, message: "შესვლა ვერ მოხერხდა: " + error.message };
+
+  redirect("/dashboard");
+}
+
 export async function signOutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();

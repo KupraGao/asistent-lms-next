@@ -110,9 +110,6 @@ export default function CoursesPage() {
           <Link className="btn-primary" href="/auth/sign-up">
             ანგარიშის შექმნა
           </Link>
-          <Link className="btn-secondary" href="/auth/sign-in">
-            შესვლა
-          </Link>
           <Link className="btn-secondary" href="/contact">
             კითხვა გაქვს?
           </Link>
