@@ -18,8 +18,10 @@ export default async function SignUpPage({
   return (
     <div className="auth-shell">
       <div className="card auth-card">
-        <h1 className="auth-title">Create account</h1>
-        <p className="auth-subtitle">Sign up to start learning.</p>
+        <h1 className="auth-title">ანგარიშის შექმნა</h1>
+        <p className="auth-subtitle">
+          დარეგისტრირდი და დაიწყე სწავლა.
+        </p>
 
         {error ? (
           <div className="auth-alert auth-alert--error">
@@ -29,12 +31,17 @@ export default async function SignUpPage({
 
         <form action={signUpAction} className="auth-form">
           <label className="auth-field">
-            <span className="auth-label">Email</span>
-            <input className="auth-input" name="email" type="email" required />
+            <span className="auth-label">ელფოსტა</span>
+            <input
+              className="auth-input"
+              name="email"
+              type="email"
+              required
+            />
           </label>
 
           <label className="auth-field">
-            <span className="auth-label">Password</span>
+            <span className="auth-label">პაროლი</span>
             <input
               className="auth-input"
               name="password"
@@ -44,14 +51,14 @@ export default async function SignUpPage({
           </label>
 
           <button type="submit" className="btn-primary w-full">
-            Create account
+            ანგარიშის შექმნა
           </button>
         </form>
 
         <p className="auth-footer">
-          Already have an account?{" "}
+          უკვე გაქვს ანგარიში?{" "}
           <Link className="link-soft" href="/auth/sign-in">
-            Sign in
+            შესვლა
           </Link>
         </p>
       </div>

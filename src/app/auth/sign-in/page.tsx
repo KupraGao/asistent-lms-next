@@ -25,8 +25,10 @@ export default async function SignInPage({
   return (
     <div className="auth-shell">
       <div className="card auth-card">
-        <h1 className="auth-title">Sign in</h1>
-        <p className="auth-subtitle">Access your dashboard and courses.</p>
+        <h1 className="auth-title">შესვლა</h1>
+        <p className="auth-subtitle">
+          შედი პირად კაბინეტში და განაგრძე სწავლა.
+        </p>
 
         {error ? (
           <div className="auth-alert auth-alert--error">
@@ -42,12 +44,17 @@ export default async function SignInPage({
 
         <form action={signInAction} className="auth-form">
           <label className="auth-field">
-            <span className="auth-label">Email</span>
-            <input className="auth-input" name="email" type="email" required />
+            <span className="auth-label">ელფოსტა</span>
+            <input
+              className="auth-input"
+              name="email"
+              type="email"
+              required
+            />
           </label>
 
           <label className="auth-field">
-            <span className="auth-label">Password</span>
+            <span className="auth-label">პაროლი</span>
             <input
               className="auth-input"
               name="password"
@@ -57,14 +64,14 @@ export default async function SignInPage({
           </label>
 
           <button type="submit" className="btn-primary w-full">
-            Sign in
+            შესვლა
           </button>
         </form>
 
         <p className="auth-footer">
-          No account?{" "}
+          ანგარიში არ გაქვს?{" "}
           <Link className="link-soft" href="/auth/sign-up">
-            Create one
+            რეგისტრაცია
           </Link>
         </p>
       </div>
