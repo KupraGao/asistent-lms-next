@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { signOut } from "@/app/auth/actions";
+import { signOutAction } from "@/app/auth/actions";
+
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
           <Link href="/courses" className="btn-secondary">
             კურსები
           </Link>
-          <form action={signOut}>
+          <form action={signOutAction}>
             <button type="submit" className="btn-primary">
               გამოსვლა
             </button>
