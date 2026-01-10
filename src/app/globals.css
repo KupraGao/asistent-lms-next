@@ -1,26 +1,60 @@
 @import "tailwindcss";
 
+/* Always in a controlled "digital dusk" theme (no auto dark) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* background stack */
+  --bg-0: #0b1020;   /* deep navy (not pure black) */
+  --bg-1: #0a1326;   /* slightly different navy for depth */
+  --bg-2: #08101f;   /* for subtle bottom gradient */
+
+  /* text */
+  --fg-0: #e7ecff;   /* primary text */
+  --fg-1: rgba(231, 236, 255, 0.78); /* secondary */
+  --fg-2: rgba(231, 236, 255, 0.62); /* muted */
+
+  /* accent (soft neon, eye-friendly) */
+  --glow-indigo: 129, 140, 248; /* indigo-400 */
+  --glow-sky: 56, 189, 248;     /* sky-400 */
+  --glow-emerald: 52, 211, 153; /* emerald-400 */
+  --glow-pink: 244, 114, 182;   /* pink-400 */
+
+  --border: rgba(231, 236, 255, 0.10);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-0);
+  --color-foreground: var(--fg-0);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--fg-0);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+
+  /* Digital dusk base + controlled aurora */
+  background:
+    radial-gradient(900px 520px at 18% -10%, rgba(var(--glow-indigo), 0.26), transparent 60%),
+    radial-gradient(800px 480px at 92% 8%, rgba(var(--glow-sky), 0.20), transparent 58%),
+    radial-gradient(760px 480px at 50% 110%, rgba(var(--glow-emerald), 0.12), transparent 60%),
+    linear-gradient(to bottom, var(--bg-1), var(--bg-2));
 }
+
+/* Subtle grain (very light so it won't annoy eyes) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+}
+
+/* ✅ Import UI layer */
+@import "../styles/ui.css";
