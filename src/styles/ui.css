@@ -217,3 +217,41 @@
     @apply mt-4 text-sm;
     color: rgba(231, 236, 255, 0.74);
   }
+@layer components {
+  .nav-avatar {
+    @apply inline-flex items-center justify-center rounded-full outline-none transition;
+    width: 42px;
+    height: 42px;
+
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(231, 236, 255, 0.14);
+    color: rgba(231, 236, 255, 0.92);
+    box-shadow:
+      0 12px 28px rgba(0, 0, 0, 0.26),
+      0 0 0 1px rgba(0, 0, 0, 0.14) inset;
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-avatar:hover {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(231, 236, 255, 0.20);
+    box-shadow:
+      0 16px 38px rgba(0, 0, 0, 0.32),
+      0 0 32px rgba(56, 189, 248, 0.10);
+  }
+
+  .nav-avatar:focus-visible {
+    border-color: rgba(56, 189, 248, 0.35);
+    box-shadow:
+      0 0 0 3px rgba(56, 189, 248, 0.12),
+      0 16px 38px rgba(0, 0, 0, 0.32);
+  }
+
+  .nav-avatar__ring {
+    @apply inline-flex items-center justify-center rounded-full;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(231, 236, 255, 0.12);
+  }
+}
