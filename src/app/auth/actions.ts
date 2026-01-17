@@ -3,9 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-type ActionResult = { ok: boolean; message: string };
-
-export async function signUpAction(formData: FormData): Promise<ActionResult> {
+export async function signUpAction(formData: FormData): Promise<void> {
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
   const username = String(formData.get("username") ?? "").trim();
@@ -15,38 +13,28 @@ export async function signUpAction(formData: FormData): Promise<ActionResult> {
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  // მინიმალური ვალიდაცია
   if (!firstName || !lastName || !username || !email || !password) {
-    return { ok: false, message: "გთხოვ შეავსე ყველა აუცილებელი ველი." };
+    redirect("/auth/sign-up?error=" + encodeURIComponent("გთხოვ შეავსე ყველა აუცილებელი ველი."));
   }
 
   if (password.length < 6) {
-    return { ok: false, message: "პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო." };
+    redirect("/auth/sign-up?error=" + encodeURIComponent("პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო."));
   }
 
   if (confirmPassword && password !== confirmPassword) {
-    return { ok: false, message: "პაროლები არ ემთხვევა ერთმანეთს." };
+    redirect("/auth/sign-up?error=" + encodeURIComponent("პაროლები არ ემთხვევა ერთმანეთს."));
   }
 
   const supabase = await createClient();
 
-  // 1) Auth signup
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-
-  if (error) return { ok: false, message: error.message };
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) redirect("/auth/sign-up?error=" + encodeURIComponent(error.message));
 
   const userId = data.user?.id;
   if (!userId) {
-    return {
-      ok: false,
-      message: "რეგისტრაცია შესრულდა, მაგრამ მომხმარებლის ID ვერ მოიძებნა.",
-    };
+    redirect("/auth/sign-up?error=" + encodeURIComponent("მომხმარებლის ID ვერ მოიძებნა."));
   }
 
-  // 2) Update profile (row is created by trigger)
   const fullName = `${firstName} ${lastName}`.trim();
 
   const { error: profileError } = await supabase
@@ -60,40 +48,36 @@ export async function signUpAction(formData: FormData): Promise<ActionResult> {
     .eq("id", userId);
 
   if (profileError) {
-    // username unique conflict ყველაზე ხშირია
-    if (profileError.code === "23505") {
-      return { ok: false, message: "ეს მომხმარებლის სახელი უკვე დაკავებულია. სცადე სხვა." };
-    }
-    return { ok: false, message: "პროფილის მონაცემების შენახვა ვერ მოხერხდა." };
+    const msg =
+      profileError.code === "23505"
+        ? "ეს მომხმარებლის სახელი უკვე დაკავებულია. სცადე სხვა."
+        : "პროფილის მონაცემების შენახვა ვერ მოხერხდა.";
+    redirect("/auth/sign-up?error=" + encodeURIComponent(msg));
   }
 
-  // შენს UX-ზეა:
-  // - ან პირდაპირ შესვლაზე გაუშვა
-  // - ან მიუთითო რომ მეილით დაადასტუროს (თუ confirm ჩართულია)
-  return { ok: true, message: "რეგისტრაცია დასრულდა. ახლა შედი სისტემაში." };
+  redirect("/auth/sign-in?success=" + encodeURIComponent("რეგისტრაცია დასრულდა. ახლა შედი სისტემაში."));
 }
 
-export async function signInAction(formData: FormData) {
+export async function signInAction(formData: FormData): Promise<void> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
-    return { ok: false, message: "Email და პაროლი აუცილებელია." };
+    redirect("/auth/sign-in?error=" + encodeURIComponent("Email და პაროლი აუცილებელია."));
   }
 
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) return { ok: false, message: "შესვლა ვერ მოხერხდა: " + error.message };
+  if (error) {
+    redirect("/auth/sign-in?error=" + encodeURIComponent("შესვლა ვერ მოხერხდა: " + error.message));
+  }
 
   redirect("/dashboard");
 }
 
-export async function signOutAction() {
+export async function signOutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/");
