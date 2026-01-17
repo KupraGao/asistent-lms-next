@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/auth/role";
 
 type MiniCourse = {
@@ -18,6 +19,12 @@ type MiniInstructor = {
   studentsCount: number | "—";
 };
 
+type Profile = {
+  full_name: string | null;
+  username: string | null;
+  role: string | null;
+};
+
 export default async function AdminDashboardPage() {
   const info = await getUserRole();
   if (!info) redirect("/auth/sign-in");
@@ -25,6 +32,27 @@ export default async function AdminDashboardPage() {
   if (info.role !== "admin") {
     redirect("/dashboard");
   }
+
+  // ✅ Admin-ის პროფილის წამოღება (header-ისთვის)
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/auth/sign-in");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, username, role")
+    .eq("id", user.id)
+    .single<Profile>();
+
+  const displayName =
+    profile?.full_name?.trim() ||
+    (profile?.username ? `@${profile.username}` : null) ||
+    "ადმინი";
+
+  const displayUsername = profile?.username ? `@${profile.username}` : null;
 
   // MVP placeholder-ები
   const stats = {
@@ -75,9 +103,21 @@ export default async function AdminDashboardPage() {
     <main className="container-page section-pad">
       {/* Header */}
       <h1 className="text-2xl font-semibold text-white/95">ადმინის პანელი</h1>
-      <p className="mt-2 text-sm text-white/70">
-        როლი: <span className="text-white/85">{info.role}</span>
-      </p>
+
+      <div className="mt-2 space-y-1 text-sm text-white/70">
+        <div>
+          <span className="text-white/85">{displayName}</span>
+          {displayUsername ? <span className="text-white/40"> • </span> : null}
+          {displayUsername ? (
+            <span className="text-white/70">{displayUsername}</span>
+          ) : null}
+        </div>
+
+        <div className="text-white/60">
+          {user.email} •{" "}
+          <span className="text-white/85">როლი: {info.role}</span>
+        </div>
+      </div>
 
       {/* Overview */}
       <section className="mt-8">

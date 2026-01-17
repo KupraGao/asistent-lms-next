@@ -10,6 +10,13 @@ type MyCourse = {
   status: "active" | "locked";
 };
 
+type Profile = {
+  full_name: string | null;
+  username: string | null;
+  phone: string | null;
+  role: string | null;
+};
+
 export default async function StudentDashboardPage() {
   const supabase = await createClient();
 
@@ -23,6 +30,21 @@ export default async function StudentDashboardPage() {
         encodeURIComponent("გთხოვ ჯერ შეხვიდე სისტემაში.")
     );
   }
+
+  // ✅ profile წამოღება profiles ცხრილიდან
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("full_name, username, phone, role")
+    .eq("id", user.id)
+    .single<Profile>();
+
+  // თუ profile არ მოიძებნა (არ უნდა ხდებოდეს, მაგრამ MVP-ზე ჯობს უსაფრთხოდ)
+  const displayName =
+    profile?.full_name?.trim() ||
+    (profile?.username ? `@${profile.username}` : null) ||
+    "მომხმარებელი";
+
+  const displayUsername = profile?.username ? `@${profile.username}` : null;
 
   // MVP placeholder მონაცემები
   const stats = {
@@ -49,11 +71,28 @@ export default async function StudentDashboardPage() {
   return (
     <main className="container-page section-pad">
       {/* Header */}
-      <h1 className="text-2xl font-semibold text-white/95">
-        სტუდენტის პანელი
-      </h1>
+      <h1 className="text-2xl font-semibold text-white/95">სტუდენტის პანელი</h1>
 
-      <p className="mt-2 text-sm text-white/70">{user.email}</p>
+      <div className="mt-2 space-y-1 text-sm text-white/70">
+        <div>
+          <span className="text-white/85">{displayName}</span>
+          {displayUsername ? (
+            <span className="text-white/40"> • </span>
+          ) : null}
+          {displayUsername ? (
+            <span className="text-white/70">{displayUsername}</span>
+          ) : null}
+        </div>
+
+        <div className="text-white/60">{user.email}</div>
+
+        {/* სურვილისამებრ: დევ-დახმარება (შემდეგ შეგიძლია წაშალო) */}
+        {profileError ? (
+          <div className="text-xs text-white/40">
+            (შენიშვნა: პროფილის წამოღება ვერ მოხერხდა)
+          </div>
+        ) : null}
+      </div>
 
       {/* Overview */}
       <section className="mt-8">
@@ -90,9 +129,7 @@ export default async function StudentDashboardPage() {
 
       {/* Continue learning */}
       <section className="mt-6">
-        <h2 className="text-sm font-semibold text-white/80">
-          სწავლების გაგრძელება
-        </h2>
+        <h2 className="text-sm font-semibold text-white/80">სწავლების გაგრძელება</h2>
 
         <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-4">
           <p className="text-sm text-white/70">
@@ -126,9 +163,7 @@ export default async function StudentDashboardPage() {
               className="flex items-center justify-between gap-4 p-4"
             >
               <div>
-                <div className="text-sm font-semibold text-white/90">
-                  {c.title}
-                </div>
+                <div className="text-sm font-semibold text-white/90">{c.title}</div>
                 <div className="mt-1 text-xs text-white/55">
                   პროგრესი: {c.progress}
                 </div>
@@ -157,9 +192,7 @@ export default async function StudentDashboardPage() {
 
       {/* Actions */}
       <section className="mt-6">
-        <h2 className="text-sm font-semibold text-white/80">
-          სწრაფი მოქმედებები
-        </h2>
+        <h2 className="text-sm font-semibold text-white/80">სწრაფი მოქმედებები</h2>
 
         <div className="mt-3 flex flex-wrap gap-2">
           <Link href="/courses" className="btn-secondary">
