@@ -1,12 +1,33 @@
-// src/components/Navbar.tsx
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { signOutAction } from "@/app/auth/actions";
+import AccountMenu from "@/components/AccountMenu";
+
+type MenuRole = "student" | "instructor" | "admin" | "guest";
 
 export default async function Navbar() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  let role: MenuRole = "guest";
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const r = profile?.role;
+    if (r === "student" || r === "instructor" || r === "admin") {
+      role = r;
+    } else {
+      // თუ profile არ არსებობს ან role ცარიელია, უსაფრთხოდ student-ზე გადავიყვანოთ
+      role = "student";
+    }
+  }
 
   const accountHref = user ? "/dashboard" : "/auth/sign-in";
 
@@ -47,24 +68,14 @@ export default async function Navbar() {
           </Link>
         </nav>
 
-        <Link href={accountHref} className="nav-avatar" aria-label="ანგარიში">
-          <span className="nav-avatar__ring" aria-hidden="true">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M12 12a4.2 4.2 0 1 0-4.2-4.2A4.2 4.2 0 0 0 12 12Zm0 2.2c-4.2 0-7.6 2.3-7.6 5.2 0 .8.6 1.4 1.4 1.4h12.4c.8 0 1.4-.6 1.4-1.4 0-2.9-3.4-5.2-7.6-5.2Z"
-                fill="currentColor"
-                opacity="0.92"
-              />
-            </svg>
-          </span>
-        </Link>
+        {/* When authed, AccountMenu must be inside the form so submit runs signOutAction */}
+        {user ? (
+          <form action={signOutAction}>
+            <AccountMenu isAuthed={true} accountHref={accountHref} role={role} />
+          </form>
+        ) : (
+          <AccountMenu isAuthed={false} accountHref={accountHref} role="guest" />
+        )}
       </div>
     </header>
   );
