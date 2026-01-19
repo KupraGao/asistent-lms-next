@@ -3,16 +3,16 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
 
-  // Supabase OAuth/Email flows usually return `code`
-  const code = searchParams.get("code");
+  // ✅ response წინასწარ ვქმნით, რომ cookie ზუსტად ამ response-ზე ჩაიწეროს
+  const response = NextResponse.redirect(new URL("/dashboard", url.origin));
 
   if (code) {
-    const supabase = await createClient();
+    const supabase = await createClient(response);
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // Redirect to dashboard (we'll protect it later)
-  return NextResponse.redirect(`${origin}/dashboard`);
+  return response;
 }

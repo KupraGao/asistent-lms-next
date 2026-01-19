@@ -2,8 +2,9 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import type { CookieMethodsServer } from "@supabase/ssr";
+import type { NextResponse } from "next/server";
 
-export async function createClient() {
+export async function createClient(response?: NextResponse) {
   const cookieStore = await cookies();
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -22,6 +23,7 @@ export async function createClient() {
     },
     setAll(cookiesToSet) {
       for (const c of cookiesToSet) {
+        // 1) Next cookie store (RSC/Actions/Middleware contexts)
         try {
           cookieStore.set({
             name: c.name,
@@ -30,7 +32,20 @@ export async function createClient() {
           });
         } catch {
           // Server Components context-ში cookie write შეიძლება აიკრძალოს.
-          // Server Actions / Route Handlers / Middleware-ში იმუშავებს.
+          // Route Handler/Middleware-ში ეს მაინც იმუშავებს response-ს გზით (ქვემოთ).
+        }
+
+        // 2) Route Handler response cookies (CRITICAL for OAuth callback)
+        if (response) {
+          try {
+            response.cookies.set({
+              name: c.name,
+              value: c.value,
+              ...(c.options ?? {}),
+            });
+          } catch {
+            // თუ response-ზე ვერ ჩაიწერა, უბრალოდ გავატაროთ
+          }
         }
       }
     },
