@@ -70,13 +70,14 @@ export default async function SignInPage({
             </span>
           </div>
 
-          <Link
-            href="/auth/sign-in?provider=google"
-            className="btn-secondary w-full justify-center"
-            aria-label="Google-ით შესვლა"
-          >
-            Google-ით გაგრძელება
-          </Link>
+         <Link
+  href="/auth/oauth?provider=google"
+  className="btn-secondary w-full justify-center"
+  aria-label="Google-ით შესვლა"
+>
+  Google-ით გაგრძელება
+</Link>
+
 
           <Link
             href="/auth/sign-in?provider=facebook"

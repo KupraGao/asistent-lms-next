@@ -82,3 +82,19 @@ export async function signOutAction(): Promise<void> {
   await supabase.auth.signOut();
   redirect("/");
 }
+export async function oauthSignInAction(provider: "google"): Promise<void> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    redirect("/auth/sign-in?error=" + encodeURIComponent(error.message));
+  }
+
+  redirect(data.url);
+}
