@@ -39,40 +39,77 @@ export async function GET(request: Request) {
       error: userError,
     } = await supabase.auth.getUser();
 
-    // თუ user ვერ წამოვიღეთ, ისევ dashboard redirect დარჩეს (ან signin-ზე გადავამისამართოთ)
     if (userError || !user) {
       return NextResponse.redirect(
         new URL("/auth/sign-in?error=Unable%20to%20fetch%20user", url.origin)
       );
     }
 
-    // 3) profiles ჩანაწერის შექმნა/განახლება (role default: student)
-    //    NOTE: დარწმუნდი რომ profiles ცხრილში გაქვს სვეტები: id, email, role, updated_at
-    const { error: upsertError } = await supabase.from("profiles").upsert(
-      {
-        id: user.id,
-        email: user.email,
-        role: "student",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" }
-    );
+    // 3) profiles: თუ არ არსებობს -> შევქმნათ (role=student)
+    //    თუ არსებობს -> role-ს არ ვეხებით (admin/instructor არ უნდა გადაიწეროს)
+    const { data: existingProfile, error: profileReadError } = await supabase
+      .from("profiles")
+      .select("id, role")
+      .eq("id", user.id)
+      .maybeSingle();
 
-    // profiles upsert თუ ვერ მოხერხდა, არ ვაჩერებთ login-ს, მაგრამ შეგვიძლია error დავაბრუნოთ
-    if (upsertError) {
+    if (profileReadError) {
       return NextResponse.redirect(
         new URL(
           `/auth/sign-in?error=${encodeURIComponent(
-            "Profile save failed: " + upsertError.message
+            "Profile read failed: " + profileReadError.message
           )}`,
           url.origin
         )
       );
     }
 
+    const nowIso = new Date().toISOString();
+
+    if (!existingProfile) {
+      // ✅ პირველად შექმნა — აქ ვუწერთ default role-ს
+      const { error: insertError } = await supabase.from("profiles").insert({
+        id: user.id,
+        email: user.email,
+        role: "student",
+        updated_at: nowIso,
+      });
+
+      if (insertError) {
+        return NextResponse.redirect(
+          new URL(
+            `/auth/sign-in?error=${encodeURIComponent(
+              "Profile insert failed: " + insertError.message
+            )}`,
+            url.origin
+          )
+        );
+      }
+    } else {
+      // ✅ უკვე არსებობს — მხოლოდ უსაფრთხო ველებს ვაახლებთ (role უცვლელია)
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          email: user.email,
+          updated_at: nowIso,
+        })
+        .eq("id", user.id);
+
+      if (updateError) {
+        return NextResponse.redirect(
+          new URL(
+            `/auth/sign-in?error=${encodeURIComponent(
+              "Profile update failed: " + updateError.message
+            )}`,
+            url.origin
+          )
+        );
+      }
+    }
+
     // 4) ყველაფერი OK -> dashboard (response უკვე redirect-ია)
     return response;
-  } catch (e) {
+  } catch {
     return NextResponse.redirect(
       new URL(
         `/auth/sign-in?error=${encodeURIComponent("Callback error")}`,
