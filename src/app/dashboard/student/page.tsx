@@ -198,7 +198,12 @@ export default async function StudentDashboardPage() {
           <Link href="/courses" className="btn-secondary">
             კურსების ნახვა
           </Link>
-
+          <Link
+            href="/dashboard/instructor/courses"
+            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
+          >
+            ჩემი კურსები
+          </Link>
           <Link href="/profile" className="btn-secondary">
             პროფილის რედაქტირება
           </Link>

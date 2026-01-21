@@ -91,6 +91,13 @@ export default async function InstructorDashboardPage() {
           >
             ჩემი კურსები
           </Link>
+          <Link
+  href="/dashboard/my-learning"
+  className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
+>
+  შეძენილი კურსები
+</Link>
+
 
           <Link
             href="/dashboard/instructor/students"

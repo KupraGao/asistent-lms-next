@@ -42,32 +42,33 @@ export default function AccountMenu({
 
   return (
     <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        className={`nav-avatar nav-avatar--${role}`}
-        aria-label="ანგარიში"
-        aria-haspopup="menu"
-        aria-controls={menuId}
-        aria-expanded={open ? "true" : "false"}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span className="nav-avatar__ring" aria-hidden="true">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <path
-              d="M12 12a4.2 4.2 0 1 0-4.2-4.2A4.2 4.2 0 0 0 12 12Zm0 2.2c-4.2 0-7.6 2.3-7.6 5.2 0 .8.6 1.4 1.4 1.4h12.4c.8 0 1.4-.6 1.4-1.4 0-2.9-3.4-5.2-7.6-5.2Z"
-              fill="currentColor"
-              opacity="0.92"
-            />
-          </svg>
-        </span>
-      </button>
+   <button
+  type="button"
+  className={`nav-avatar nav-avatar--${role}`}
+  aria-label="ანგარიში"
+  aria-haspopup="menu"
+  aria-controls={menuId}
+  aria-expanded={open}
+  onClick={() => setOpen((v) => !v)}
+>
+  <span className="nav-avatar__ring" aria-hidden="true">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M12 12a4.2 4.2 0 1 0-4.2-4.2A4.2 4.2 0 0 0 12 12Zm0 2.2c-4.2 0-7.6 2.3-7.6 5.2 0 .8.6 1.4 1.4 1.4h12.4c.8 0 1.4-.6 1.4-1.4 0-2.9-3.4-5.2-7.6-5.2Z"
+        fill="currentColor"
+        opacity="0.92"
+      />
+    </svg>
+  </span>
+</button>
+
 
       {open && (
         <div
