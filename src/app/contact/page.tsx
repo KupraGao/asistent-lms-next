@@ -42,7 +42,7 @@ export default function ContactPage() {
             </div>
 
             <button type="button" className="btn-primary w-full">
-              გაგზავნა (Soon)
+              გაგზავნა
             </button>
 
             <p className="text-xs text-white/50">

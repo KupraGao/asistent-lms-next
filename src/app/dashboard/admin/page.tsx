@@ -198,7 +198,7 @@ export default async function AdminDashboardPage() {
       <section className="mt-6">
         <div className="flex items-end justify-between gap-3">
           <h2 className="text-sm font-semibold text-white/80">
-            კურსები (მოკლე სია)
+            ბოლოს განახლებული კურსები
           </h2>
           <Link
             href="/dashboard/admin/courses"
