@@ -21,83 +21,81 @@ export default async function SignUpPage({
         <h1 className="auth-title">ანგარიშის შექმნა</h1>
         <p className="auth-subtitle">დარეგისტრირდი და დაიწყე სწავლა.</p>
 
-        {error ? (
+        {error && (
           <div className="auth-alert auth-alert--error">
             {decodeURIComponent(error)}
           </div>
-        ) : null}
+        )}
 
         <form action={signUpAction} className="auth-form">
-          {/* First & Last name — one row */}
+          {/* First & Last name */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <label className="auth-field">
-              <span className="auth-label">სახელი</span>
-              <input
-                className="auth-input"
-                name="firstName"
-                type="text"
-                required
-              />
-            </label>
-
-            <label className="auth-field">
-              <span className="auth-label">გვარი</span>
-              <input
-                className="auth-input"
-                name="lastName"
-                type="text"
-                required
-              />
-            </label>
-          </div>
-
-          <label className="auth-field">
-            <span className="auth-label">მომხმარებლის სახელი (username)</span>
             <input
               className="auth-input"
-              name="username"
+              name="firstName"
               type="text"
               required
-              minLength={3}
+              placeholder="სახელი"
+              autoComplete="given-name"
             />
-          </label>
 
-          <label className="auth-field">
-            <span className="auth-label">ტელეფონი (სურვილისამებრ)</span>
-            <input className="auth-input" name="phone" type="tel" />
-          </label>
-
-          <label className="auth-field">
-            <span className="auth-label">ელფოსტა</span>
             <input
               className="auth-input"
-              name="email"
-              type="email"
+              name="lastName"
+              type="text"
               required
+              placeholder="გვარი"
+              autoComplete="family-name"
             />
-          </label>
+          </div>
 
-          <label className="auth-field">
-            <span className="auth-label">პაროლი</span>
-            <input
-              className="auth-input"
-              name="password"
-              type="password"
-              required
-              minLength={6}
-            />
-          </label>
+          <input
+            className="auth-input"
+            name="username"
+            type="text"
+            required
+            minLength={3}
+            placeholder="მომხმარებლის სახელი"
+            autoComplete="username"
+          />
 
-          <label className="auth-field">
-            <span className="auth-label">გაიმეორე პაროლი</span>
-            <input
-              className="auth-input"
-              name="confirmPassword"
-              type="password"
-              required
-              minLength={6}
-            />
-          </label>
+          <input
+            className="auth-input"
+            name="phone"
+            type="tel"
+            placeholder="ტელეფონი (სურვილისამებრ)"
+            autoComplete="tel"
+          />
+
+          <input
+            className="auth-input"
+            name="email"
+            type="email"
+            required
+            placeholder="ელფოსტა"
+            autoComplete="email"
+            inputMode="email"
+          />
+
+          <input
+            className="auth-input"
+            name="password"
+            type="password"
+            required
+            minLength={6}
+            placeholder="პაროლი"
+            autoComplete="new-password"
+          />
+
+          <input
+            className="auth-input"
+            name="confirmPassword"
+            type="password"
+            required
+            minLength={6}
+            placeholder="გაიმეორე პაროლი"
+            autoComplete="new-password"
+          />
 
           <button type="submit" className="btn-primary w-full justify-center">
             ანგარიშის შექმნა

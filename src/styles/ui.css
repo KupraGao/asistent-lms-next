@@ -1,7 +1,13 @@
+@reference "tailwindcss";
+
 @layer components {
   /* ===== Layout ===== */
   .container-page { @apply mx-auto max-w-6xl px-4; }
   .section-pad { @apply py-10 md:py-14; }
+
+  /* ===== App Shell (Sticky Footer) ===== */
+  .app-shell { @apply min-h-screen flex flex-col; }
+  .app-main { @apply flex-1; }
 
   /* ===== Buttons ===== */
   .btn-primary {
@@ -12,7 +18,12 @@
       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
       active:translate-y-[1px];
 
-    background: linear-gradient(90deg, rgba(129,140,248,.92), rgba(56,189,248,.88), rgba(167,139,250,.88));
+    background: linear-gradient(
+      90deg,
+      rgba(129,140,248,.92),
+      rgba(56,189,248,.88),
+      rgba(167,139,250,.88)
+    );
     background-size: 180% 180%;
     box-shadow:
       0 12px 28px rgba(0, 0, 0, 0.32),
@@ -25,7 +36,12 @@
     position: absolute;
     inset: -2px;
     border-radius: 14px;
-    background: linear-gradient(90deg, rgba(129,140,248,.55), rgba(56,189,248,.45), rgba(244,114,182,.25));
+    background: linear-gradient(
+      90deg,
+      rgba(129,140,248,.55),
+      rgba(56,189,248,.45),
+      rgba(244,114,182,.25)
+    );
     filter: blur(14px);
     opacity: .26;
     z-index: -1;
@@ -59,6 +75,8 @@
     box-shadow:
       0 12px 28px rgba(0, 0, 0, 0.26),
       0 0 0 1px rgba(0, 0, 0, 0.14) inset;
+
+    -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
   }
 
@@ -79,6 +97,8 @@
     box-shadow:
       0 20px 54px rgba(0, 0, 0, 0.28),
       0 0 0 1px rgba(0, 0, 0, 0.14) inset;
+
+    -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
   }
 
@@ -115,9 +135,12 @@
   .badge-warn {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5
       text-[11px] font-semibold transition duration-300;
+
     border: 1px solid rgba(231, 236, 255, 0.14);
     background: rgba(255, 255, 255, 0.07);
     color: rgba(231, 236, 255, 0.82);
+
+    -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
   }
 
@@ -155,26 +178,17 @@
     @apply min-h-[calc(100vh-72px)] grid place-items-center px-4 py-10;
   }
 
-  .auth-card {
-    @apply w-full max-w-[420px] p-6 md:p-7;
-  }
+  .auth-card { @apply w-full max-w-[420px] p-6 md:p-7; }
 
-  .auth-title {
-    @apply text-xl md:text-2xl font-semibold tracking-tight;
-  }
+  .auth-title { @apply text-xl md:text-2xl font-semibold tracking-tight; }
 
   .auth-subtitle {
     @apply mt-1 text-sm;
     color: rgba(231, 236, 255, 0.72);
   }
 
-  .auth-form {
-    @apply mt-5 grid gap-3;
-  }
-
-  .auth-field {
-    @apply grid gap-2;
-  }
+  .auth-form { @apply mt-5 grid gap-3; }
+  .auth-field { @apply grid gap-2; }
 
   .auth-label {
     @apply text-sm font-semibold;
@@ -183,6 +197,7 @@
 
   .auth-input {
     @apply w-full rounded-xl px-3 py-2.5 text-sm outline-none transition;
+
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(231, 236, 255, 0.14);
     color: rgba(231, 236, 255, 0.92);
@@ -217,7 +232,7 @@
     color: rgba(231, 236, 255, 0.74);
   }
 
-  /* ===== Navbar Avatar (FIXED + BIGGER) ===== */
+  /* ===== Navbar Avatar ===== */
   .nav-avatar {
     @apply inline-flex items-center justify-center rounded-full outline-none transition;
     width: 48px;
@@ -229,6 +244,8 @@
     box-shadow:
       0 12px 28px rgba(0, 0, 0, 0.26),
       0 0 0 1px rgba(0, 0, 0, 0.14) inset;
+
+    -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
   }
 
@@ -247,40 +264,60 @@
       0 16px 38px rgba(0, 0, 0, 0.32);
   }
 
-  /* ring base: no duplicate, no padding hack */
   .nav-avatar__ring {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
     width: 38px;
     height: 38px;
-
     border-radius: 9999px;
     background: rgba(255, 255, 255, 0.06);
     border: 2px solid transparent;
-
     transition: border-color 0.25s ease, box-shadow 0.25s ease;
   }
 
-  /* Role-based rings */
   .nav-avatar--guest .nav-avatar__ring {
     border-color: #ef4444;
     box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.25);
   }
-
   .nav-avatar--student .nav-avatar__ring {
     border-color: #22c55e;
     box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25);
   }
-
   .nav-avatar--instructor .nav-avatar__ring {
     border-color: #eab308;
     box-shadow: 0 0 0 4px rgba(234, 179, 8, 0.25);
   }
-
   .nav-avatar--admin .nav-avatar__ring {
     border-color: #38bdf8;
     box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.30);
   }
+
+  /* ===== Footer ===== */
+  .footer {
+    @apply border-t border-white/10;
+    background: rgba(255, 255, 255, 0.03);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+
+  .footer__inner { @apply py-10 grid gap-8 md:grid-cols-3 md:items-start; }
+  .footer__logo { @apply text-base font-semibold text-white/95; }
+
+  .footer__desc {
+    @apply mt-2 text-sm leading-relaxed;
+    color: rgba(231, 236, 255, 0.72);
+  }
+
+  .footer__nav { @apply grid gap-2; }
+
+  .footer__link {
+    @apply text-sm font-semibold transition;
+    color: rgba(186, 230, 253, 0.92);
+  }
+  .footer__link:hover { color: rgba(231, 236, 255, 0.98); }
+
+  .footer__meta { @apply text-sm; color: rgba(231, 236, 255, 0.70); }
+  .footer__copy { @apply font-semibold; color: rgba(231, 236, 255, 0.90); }
+  .footer__small { @apply mt-1; }
 }

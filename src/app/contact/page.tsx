@@ -12,9 +12,6 @@ export default function ContactPage() {
         <div className="mt-6 card">
           <form className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-white/85" htmlFor="name">
-                სახელი
-              </label>
               <input
                 id="name"
                 name="name"
@@ -25,9 +22,6 @@ export default function ContactPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium text-white/85" htmlFor="email">
-                ელ. ფოსტა
-              </label>
               <input
                 id="email"
                 name="email"
@@ -38,9 +32,6 @@ export default function ContactPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium text-white/85" htmlFor="message">
-                შეტყობინება
-              </label>
               <textarea
                 id="message"
                 name="message"
