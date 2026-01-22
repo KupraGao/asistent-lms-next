@@ -15,15 +15,18 @@ type Props = {
   status: "all" | "draft" | "published";
   sort: "updated_desc" | "updated_asc" | "title_asc";
 };
-
-function buildQuery(params: Record<string, string>) {
-  const usp = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v) usp.set(k, v);
-  });
-  const s = usp.toString();
-  return s ? `?${s}` : "";
-}
+ 
+// // =========================
+// // buildQuery დაგვჭირდება სამომავლოდ ამიტომ არ წავშალე.
+// // =========================
+// function buildQuery(params: Record<string, string>) {
+//   const usp = new URLSearchParams();
+//   Object.entries(params).forEach(([k, v]) => {
+//     if (v) usp.set(k, v);
+//   });
+//   const s = usp.toString();
+//   return s ? `?${s}` : "";
+// }
 
 export default function AdminCoursesControls({ q, status, sort }: Props) {
   return (
