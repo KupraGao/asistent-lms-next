@@ -1,7 +1,8 @@
 # TODO – Asistent LMS
 
 ## Admin Dashboard (Phase 2)
-- [ ] კურსის რედაქტირება
+- [x] კურსის ნახვა (detail page)
+- [x] კურსის რედაქტირება
 - [ ] კურსის წაშლა (confirm + permission)
 - [ ] სტუდენტის სუსპენდირება
 - [ ] ინსტრუქტორის სტატუსის შეცვლა
@@ -10,7 +11,7 @@
 ## Instructor Dashboard
 - [ ] ჩემი კურსების სია
 - [ ] სტუდენტების ნახვა თითო კურსზე
-- [ ] კურსის draft/publish კონტროლი
+- [ ] კურსის draft / publish კონტროლი
 
 ## Student Dashboard
 - [ ] შეძენილი კურსები

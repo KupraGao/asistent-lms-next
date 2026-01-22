@@ -38,7 +38,6 @@ function pickOne(
 export default async function AdminCoursesPage({
   searchParams,
 }: {
-  // შენს პროექტში searchParams Promise-ად გაქვს გამოყენებული სხვაგანაც.
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   // =========================
@@ -54,8 +53,8 @@ export default async function AdminCoursesPage({
   const sp = (await searchParams) ?? {};
 
   const qRaw = pickOne(sp, "q").trim();
-  const statusRaw = pickOne(sp, "status").trim(); // all | draft | published
-  const sortRaw = pickOne(sp, "sort").trim(); // updated_desc | updated_asc | title_asc
+  const statusRaw = pickOne(sp, "status").trim();
+  const sortRaw = pickOne(sp, "sort").trim();
 
   const status: "all" | "draft" | "published" =
     statusRaw === "draft" || statusRaw === "published" ? statusRaw : "all";
@@ -74,24 +73,13 @@ export default async function AdminCoursesPage({
     .from("courses")
     .select("id, title, status, price, updated_at, author_id");
 
-  // --- Filter: status ---
-  if (status !== "all") {
-    query = query.eq("status", status);
-  }
+  if (status !== "all") query = query.eq("status", status);
+  if (qRaw) query = query.ilike("title", `%${qRaw}%`);
 
-  // --- Search: title ---
-  if (qRaw) {
-    query = query.ilike("title", `%${qRaw}%`);
-  }
-
-  // --- Sort ---
-  if (sort === "title_asc") {
-    query = query.order("title", { ascending: true });
-  } else if (sort === "updated_asc") {
+  if (sort === "title_asc") query = query.order("title", { ascending: true });
+  else if (sort === "updated_asc")
     query = query.order("updated_at", { ascending: true });
-  } else {
-    query = query.order("updated_at", { ascending: false });
-  }
+  else query = query.order("updated_at", { ascending: false });
 
   const { data, error } = await query;
   const courses = (data ?? []) as CourseRow[];
@@ -118,9 +106,6 @@ export default async function AdminCoursesPage({
 
   return (
     <main className="container-page section-pad">
-      {/* =========================
-          Header: title + actions
-         ========================= */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-white/95">კურსები</h1>
@@ -146,25 +131,14 @@ export default async function AdminCoursesPage({
         </div>
       </div>
 
-      {/* =========================
-          Error
-         ========================= */}
       {error ? (
         <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-red-200">
           ჩატვირთვა ვერ მოხერხდა: {error.message}
         </div>
       ) : null}
 
-      {/* =========================
-          Controls (Client Component)
-          - status & sort: auto-submit on change
-          - search: submit button
-         ========================= */}
       <AdminCoursesControls q={qRaw} status={status} sort={sort} />
 
-      {/* =========================
-          Summary line
-         ========================= */}
       <div className="mt-4 text-sm text-white/70">
         ნაჩვენებია:{" "}
         <span className="text-white/90 font-semibold">{courses.length}</span>{" "}
@@ -174,13 +148,10 @@ export default async function AdminCoursesPage({
         <span className="text-white/90 font-semibold">{sortLabel}</span>
       </div>
 
-      {/* =========================
-          Courses list
-         ========================= */}
       <div className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/5">
-        {courses.map((c) => (
+        {courses.map((c, idx) => (
           <div
-            key={c.id}
+            key={c.id ?? `row-${idx}`}
             className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="min-w-0">
@@ -200,20 +171,27 @@ export default async function AdminCoursesPage({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href={`/dashboard/admin/courses/${c.id}`}
-                className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
-              >
-                ნახვა
-              </Link>
+              {c.id ? (
+                <>
+                  <Link
+                    href={`/dashboard/admin/courses/${c.id}`}
+                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
+                  >
+                    ნახვა
+                  </Link>
 
-              {/* Placeholder ღილაკები — შემდეგ ეტაპზე real action */}
-              <button
-                type="button"
-                className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
-              >
-                რედაქტირება
-              </button>
+                  <Link
+                    href={`/dashboard/admin/courses/${c.id}/edit`}
+                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
+                  >
+                    რედაქტირება
+                  </Link>
+                </>
+              ) : (
+                <span className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200">
+                  ID აკლია
+                </span>
+              )}
 
               <button
                 type="button"

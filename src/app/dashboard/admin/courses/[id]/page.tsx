@@ -22,7 +22,8 @@ type CourseRow = {
 export default async function AdminCourseDetailPage({
   params,
 }: {
-  params: { id: string };
+  // შენს პროექტში (როგორც searchParams), params-იც Promise-ად მოდის
+  params: Promise<{ id: string }>;
 }) {
   // =========================
   // 1) Role guard
@@ -31,7 +32,12 @@ export default async function AdminCourseDetailPage({
   if (!info) redirect("/auth/sign-in");
   if (info.role !== "admin") redirect("/dashboard");
 
-  const { id } = params;
+  const { id } = await params;
+
+  // არასდროს გავუშვათ "undefined"/ცარიელი id DB query-ზე
+  if (!id || id === "undefined") {
+    redirect("/dashboard/admin/courses?error=invalid_id");
+  }
 
   // =========================
   // 2) Load course
@@ -115,21 +121,22 @@ export default async function AdminCourseDetailPage({
       </div>
 
       {/* =========================
-          Placeholder actions
+          Actions
          ========================= */}
       <div className="mt-6 flex flex-wrap gap-2">
-        <button
-          type="button"
+        <Link
+          href={`/dashboard/admin/courses/${course.id}/edit`}
           className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
         >
-          რედაქტირება (მალე)
-        </button>
+          რედაქტირება
+        </Link>
 
+        {/* Delete-ს შემდეგ ეტაპზე გავაკეთებთ server action + confirm */}
         <button
           type="button"
           className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/15"
         >
-          წაშლა (მალე)
+          წაშლა
         </button>
       </div>
 
