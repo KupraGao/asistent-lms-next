@@ -1,8 +1,17 @@
+// =======================================================
+// FILE: src/app/dashboard/admin/page.tsx
+// PURPOSE: Admin Dashboard (MVP) — სტატები + სწრაფი მოქმედებები + preview სიები
+// ACCESS: მხოლოდ admin
+// =======================================================
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/auth/role";
 
+// =======================================================
+// TYPES: placeholder UI-სთვის (მოგვიანებით რეალურ DB query-ებზე გადავალთ)
+// =======================================================
 type MiniCourse = {
   id: string;
   title: string;
@@ -25,7 +34,16 @@ type Profile = {
   role: string | null;
 };
 
+// =======================================================
+// PAGE: AdminDashboardPage
+// - Role guard (admin-only)
+// - პროფილის წამოღება header-ისთვის
+// - UI: overview cards + quick actions + preview lists
+// =======================================================
 export default async function AdminDashboardPage() {
+  // -----------------------------
+  // 1) Role guard
+  // -----------------------------
   const info = await getUserRole();
   if (!info) redirect("/auth/sign-in");
 
@@ -33,7 +51,9 @@ export default async function AdminDashboardPage() {
     redirect("/dashboard");
   }
 
-  // ✅ Admin-ის პროფილის წამოღება (header-ისთვის)
+  // -----------------------------
+  // 2) Supabase client + auth user
+  // -----------------------------
   const supabase = await createClient();
   const {
     data: { user },
@@ -41,12 +61,18 @@ export default async function AdminDashboardPage() {
 
   if (!user) redirect("/auth/sign-in");
 
+  // -----------------------------
+  // 3) Admin profile (header-ისთვის)
+  // -----------------------------
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, username, role")
     .eq("id", user.id)
     .single<Profile>();
 
+  // -----------------------------
+  // 4) Display name / username (fallback-ებით)
+  // -----------------------------
   const displayName =
     profile?.full_name?.trim() ||
     (profile?.username ? `@${profile.username}` : null) ||
@@ -54,7 +80,9 @@ export default async function AdminDashboardPage() {
 
   const displayUsername = profile?.username ? `@${profile.username}` : null;
 
-  // MVP placeholder-ები
+  // -----------------------------
+  // 5) MVP Stats placeholder
+  // -----------------------------
   const stats = {
     totalCourses: "—",
     totalInstructors: "—",
@@ -62,7 +90,9 @@ export default async function AdminDashboardPage() {
     paidCourses: "—",
   };
 
-  // Placeholder სიები (შემდეგ DB query-ებით ჩანაცვლდება)
+  // -----------------------------
+  // 6) MVP Preview lists placeholder
+  // -----------------------------
   const recentCourses: MiniCourse[] = [
     {
       id: "c1",
@@ -96,12 +126,17 @@ export default async function AdminDashboardPage() {
     { id: "i3", name: "ინსტრუქტორი C", coursesCount: "—", studentsCount: "—" },
   ];
 
+  // -----------------------------
+  // 7) Helper: status label
+  // -----------------------------
   const statusLabel = (s: MiniCourse["status"]) =>
     s === "published" ? "გამოქვეყნებული" : "დრაფტი";
 
   return (
     <main className="container-page section-pad">
-      {/* Header */}
+      {/* ===================================================
+          HEADER: Admin panel title + admin meta
+         =================================================== */}
       <h1 className="text-2xl font-semibold text-white/95">ადმინის პანელი</h1>
 
       <div className="mt-2 space-y-1 text-sm text-white/70">
@@ -114,12 +149,13 @@ export default async function AdminDashboardPage() {
         </div>
 
         <div className="text-white/60">
-          {user.email} •{" "}
-          <span className="text-white/85">როლი: {info.role}</span>
+          {user.email} • <span className="text-white/85">როლი: {info.role}</span>
         </div>
       </div>
 
-      {/* Overview */}
+      {/* ===================================================
+          OVERVIEW: Stats cards (placeholder)
+         =================================================== */}
       <section className="mt-8">
         <h2 className="text-sm font-semibold text-white/80">მიმოხილვა</h2>
 
@@ -159,7 +195,9 @@ export default async function AdminDashboardPage() {
         </p>
       </section>
 
-      {/* Quick actions */}
+      {/* ===================================================
+          QUICK ACTIONS: ლინკები admin-ის მთავარ გვერდებზე
+         =================================================== */}
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-white/80">სწრაფი მოქმედებები</h2>
 
@@ -170,18 +208,22 @@ export default async function AdminDashboardPage() {
           >
             ყველა კურსი
           </Link>
-<Link
-  href="/dashboard/my-courses"
-  className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
->
-  ჩემი კურსები
-</Link>
-<Link
-  href="/dashboard/my-learning"
-  className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
->
-  შეძენილი კურსები
-</Link>
+
+          {/* NOTE: ეს ორი ლინკი role-agnostic გვერდებზე გადის */}
+          <Link
+            href="/dashboard/my-courses"
+            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
+          >
+            ჩემი კურსები
+          </Link>
+
+          <Link
+            href="/dashboard/my-learning"
+            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
+          >
+            შეძენილი კურსები
+          </Link>
+
           <Link
             href="/dashboard/admin/instructors"
             className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
@@ -205,12 +247,15 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* Courses preview */}
+      {/* ===================================================
+          COURSES PREVIEW: recentCourses placeholder
+         =================================================== */}
       <section className="mt-6">
         <div className="flex items-end justify-between gap-3">
           <h2 className="text-sm font-semibold text-white/80">
             ბოლოს განახლებული კურსები
           </h2>
+
           <Link
             href="/dashboard/admin/courses"
             className="text-sm font-semibold text-white/70 hover:text-white/90"
@@ -228,9 +273,7 @@ export default async function AdminDashboardPage() {
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <div className="text-sm font-semibold text-white/90">
-                    {c.title}
-                  </div>
+                  <div className="text-sm font-semibold text-white/90">{c.title}</div>
                   <div className="mt-1 text-xs text-white/55">
                     ავტორი: {c.authorName} • განახლდა: {c.updatedAt}
                   </div>
@@ -240,9 +283,11 @@ export default async function AdminDashboardPage() {
                   <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-white/75">
                     {statusLabel(c.status)}
                   </span>
+
                   <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-white/75">
                     სტუდენტები: {c.studentsCount}
                   </span>
+
                   <span className="text-white/40">→</span>
                 </div>
               </div>
@@ -256,12 +301,15 @@ export default async function AdminDashboardPage() {
         </p>
       </section>
 
-      {/* Instructors preview */}
+      {/* ===================================================
+          INSTRUCTORS PREVIEW: instructors placeholder
+         =================================================== */}
       <section className="mt-6">
         <div className="flex items-end justify-between gap-3">
           <h2 className="text-sm font-semibold text-white/80">
             ინსტრუქტორები (მოკლე სია)
           </h2>
+
           <Link
             href="/dashboard/admin/instructors"
             className="text-sm font-semibold text-white/70 hover:text-white/90"
@@ -278,13 +326,12 @@ export default async function AdminDashboardPage() {
               className="flex items-center justify-between gap-4 p-4 hover:bg-white/5"
             >
               <div>
-                <div className="text-sm font-semibold text-white/90">
-                  {u.name}
-                </div>
+                <div className="text-sm font-semibold text-white/90">{u.name}</div>
                 <div className="mt-1 text-xs text-white/55">
                   კურსები: {u.coursesCount} • სტუდენტები (ჯამში): {u.studentsCount}
                 </div>
               </div>
+
               <span className="text-white/40">→</span>
             </Link>
           ))}
@@ -296,9 +343,12 @@ export default async function AdminDashboardPage() {
         </p>
       </section>
 
-      {/* Next steps */}
+      {/* ===================================================
+          NEXT STEPS: roadmap
+         =================================================== */}
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-white/80">შემდეგი ნაბიჯები</h2>
+
         <ol className="mt-3 space-y-2 text-sm text-white/70">
           <li>1) კურსების სრული სია: ძიება / ფილტრი / სორტირება / ავტორი</li>
           <li>2) ინსტრუქტორების სია: ინსტრუქტორი → მისი კურსები</li>

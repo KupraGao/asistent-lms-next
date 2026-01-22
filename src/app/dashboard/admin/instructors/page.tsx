@@ -1,8 +1,18 @@
+// =======================================================
+// FILE: src/app/dashboard/admin/instructors/page.tsx
+// PURPOSE: Admin -> ინსტრუქტორების სია (profiles ცხრილიდან)
+// ACCESS: მხოლოდ admin
+// =======================================================
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/auth/role";
 
+// =======================================================
+// TYPE: InstructorRow
+// - profiles ცხრილიდან წამოსაღები ველები
+// =======================================================
 type InstructorRow = {
   id: string;
   full_name: string | null;
@@ -12,13 +22,30 @@ type InstructorRow = {
   is_public_instructor: boolean | null;
 };
 
+// =======================================================
+// PAGE: AdminInstructorsPage
+// - Role guard (admin-only)
+// - profiles ცხრილიდან იღებს instructor/admin როლებს
+// - აჩვენებს ჩამონათვალს + მოქმედებების (placeholder) ღილაკებს
+// =======================================================
 export default async function AdminInstructorsPage() {
+  // -----------------------------
+  // 1) Role guard
+  // -----------------------------
   const info = await getUserRole();
   if (!info) redirect("/auth/sign-in");
   if (info.role !== "admin") redirect("/dashboard");
 
+  // -----------------------------
+  // 2) Supabase client
+  // -----------------------------
   const supabase = await createClient();
 
+  // -----------------------------
+  // 3) Fetch: profiles
+  // - role in ["instructor", "admin"]
+  // - sort: role ASC, full_name ASC
+  // -----------------------------
   const { data, error } = await supabase
     .from("profiles")
     .select("id, full_name, username, role, status, is_public_instructor")
@@ -26,6 +53,9 @@ export default async function AdminInstructorsPage() {
     .order("role", { ascending: true })
     .order("full_name", { ascending: true });
 
+  // -----------------------------
+  // 4) Error UI
+  // -----------------------------
   if (error) {
     return (
       <main className="container-page section-pad">
@@ -46,10 +76,16 @@ export default async function AdminInstructorsPage() {
     );
   }
 
+  // -----------------------------
+  // 5) Normalize rows
+  // -----------------------------
   const rows = (data ?? []) as InstructorRow[];
 
   return (
     <main className="container-page section-pad">
+      {/* =========================
+          HEADER
+         ========================= */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-white/95">ინსტრუქტორები</h1>
@@ -66,8 +102,12 @@ export default async function AdminInstructorsPage() {
         </Link>
       </div>
 
+      {/* =========================
+          LIST: instructors
+         ========================= */}
       <div className="mt-6 divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/5">
         {rows.map((u) => {
+          // --- UI display name fallback ---
           const name =
             u.full_name?.trim() ||
             (u.username ? `@${u.username}` : null) ||
@@ -76,6 +116,7 @@ export default async function AdminInstructorsPage() {
           return (
             <div key={u.id} className="p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                {/* --- Left: meta --- */}
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-white/90">
                     {name}{" "}
@@ -87,12 +128,12 @@ export default async function AdminInstructorsPage() {
                   <div className="mt-1 text-xs text-white/60">
                     როლი:{" "}
                     <span className="text-white/80">
-                      {u.role === "admin" ? "ადმინი (ასევე ინსტრუქტორი)" : "ინსტრუქტორი"}
+                      {u.role === "admin"
+                        ? "ადმინი (ასევე ინსტრუქტორი)"
+                        : "ინსტრუქტორი"}
                     </span>{" "}
                     • სტატუსი:{" "}
-                    <span className="text-white/80">
-                      {u.status ?? "—"}
-                    </span>{" "}
+                    <span className="text-white/80">{u.status ?? "—"}</span>{" "}
                     • საჯარო:{" "}
                     <span className="text-white/80">
                       {u.is_public_instructor ? "კი" : "არა"}
@@ -100,21 +141,35 @@ export default async function AdminInstructorsPage() {
                   </div>
                 </div>
 
+                {/* --- Right: actions (ახლა placeholder) --- */}
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* Placeholder buttons (შემდეგ ეტაპზე დავამატებთ action-ებს) */}
+                  {/* NOTE: ეს Link რეალურად მუშაობს: გადადის ინსტრუქტორის კურსებზე */}
                   <Link
-  href={`/dashboard/admin/instructors/${u.id}/courses`}
-  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10">
-  კურსები
-</Link>
+                    href={`/dashboard/admin/instructors/${u.id}/courses`}
+                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
+                  >
+                    კურსები
+                  </Link>
 
-                  <button className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10">
+                  {/* Placeholder buttons: შემდეგ ეტაპზე რეალურ server action-ებს დავამატებთ */}
+                  <button
+                    type="button"
+                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
+                  >
                     კურსის დადების შეზღუდვა
                   </button>
-                  <button className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10">
+
+                  <button
+                    type="button"
+                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
+                  >
                     სუსპენდირება
                   </button>
-                  <button className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/15">
+
+                  <button
+                    type="button"
+                    className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/15"
+                  >
                     წაშლა
                   </button>
                 </div>
@@ -123,11 +178,17 @@ export default async function AdminInstructorsPage() {
           );
         })}
 
+        {/* =========================
+            EMPTY STATE
+           ========================= */}
         {rows.length === 0 ? (
           <div className="p-4 text-sm text-white/60">ინსტრუქტორები ჯერ არ არის.</div>
         ) : null}
       </div>
 
+      {/* =========================
+          FOOTER NOTE
+         ========================= */}
       <p className="mt-4 text-xs text-white/50">
         * ახლა ღილაკები placeholder-ია. შემდეგ ნაბიჯზე დავამატებთ რეალურ
         “Toggle / Suspend / Delete” action-ებს Supabase-ს საშუალებით.
