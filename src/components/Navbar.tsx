@@ -43,12 +43,6 @@ export default async function Navbar() {
 
         <nav className="hidden items-center gap-6 md:flex">
           <Link
-            href="/"
-            className="text-sm font-medium text-white/80 transition hover:text-white hover:underline hover:underline-offset-4"
-          >
-            მთავარი
-          </Link>
-          <Link
             href="/courses"
             className="text-sm font-medium text-white/80 transition hover:text-white hover:underline hover:underline-offset-4"
           >
