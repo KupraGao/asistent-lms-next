@@ -1,121 +1,98 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
-/* ================= Types ================= */
+type CourseLevel = "დამწყები" | "საშუალო" | "გაღრმავებული";
+type PriceLabel = "უფასო" | "ფასიანი";
 
-type Course = {
+type CourseRow = {
   id: string;
   title: string;
-  desc: string;
-  level: "დამწყები" | "საშუალო" | "გაღრმავებული";
-  priceLabel: "უფასო" | "ფასიანი";
-  locked: boolean;
-  duration: string;
-  outcomes: string[];
-  syllabusPreview: { title: string; items: string[] }[];
+  description: string | null;
+
+  status: "draft" | "published" | null;
+
+  price: number | null;
+  price_label: PriceLabel | null;
+
+  duration: string | null;
+  level: CourseLevel | null;
+
+  locked: boolean | null;
+
+  audience: string | null;
+  outcomes: string[] | null;
+  topics: string[] | null;
+  requirements: string[] | null;
 };
 
-/* ================= Data ================= */
+type ResourceRow = {
+  id: string;
+  course_id: string;
+  type: "link" | "file";
+  title: string | null;
+  url: string;
+  file_path: string | null;
+  mime: string | null;
+  size: number | null;
+  created_at: string | null;
+};
 
-const COURSES: Course[] = [
-  {
-    id: "c1",
-    title: "Front-end საფუძვლები (HTML/CSS)",
-    desc: "სტრუქტურა, სტილები, რესპონსივი და მცირე პრაქტიკული პროექტები.",
-    level: "დამწყები",
-    priceLabel: "უფასო",
-    locked: false,
-    duration: "2–3 კვირა",
-    outcomes: [
-      "HTML სტრუქტურის სწორად აწყობა (semantic markup)",
-      "CSS layout: Flex/Grid, responsive მიდგომა",
-      "კომპონენტური UI აზროვნება (cards, forms, sections)",
-      "მცირე პრაქტიკული გვერდების აწყობა",
-    ],
-    syllabusPreview: [
-      {
-        title: "Module 1 — HTML საფუძვლები",
-        items: ["Tags & structure", "Semantic HTML", "Forms basics"],
-      },
-      {
-        title: "Module 2 — CSS საფუძვლები",
-        items: ["Selectors", "Box model", "Typography & spacing"],
-      },
-      {
-        title: "Module 3 — Responsive",
-        items: ["Flex/Grid", "Breakpoints", "Small project"],
-      },
-    ],
-  },
-  {
-    id: "c2",
-    title: "JavaScript პრაქტიკა — DOM & ლოგიკა",
-    desc: "სავარჯიშოები რეალური UI ამოცანებით: events, state, ფორმები.",
-    level: "საშუალო",
-    priceLabel: "ფასიანი",
-    locked: true,
-    duration: "4 კვირა",
-    outcomes: [
-      "DOM manipulation და Event-driven UI",
-      "State-ის მართვა მარტივ UI ამოცანებში",
-      "Form validation და user feedback patterns",
-      "მინი-პროექტები: widgets, interactive UI",
-    ],
-    syllabusPreview: [
-      {
-        title: "Module 1 — DOM საფუძვლები",
-        items: ["Selectors", "Events", "DOM updates"],
-      },
-      {
-        title: "Module 2 — State & Logic",
-        items: ["Conditions", "Loops", "Local state patterns"],
-      },
-      {
-        title: "Module 3 — Practice",
-        items: ["Form UX", "UI tasks", "Mini project"],
-      },
-    ],
-  },
-  {
-    id: "c3",
-    title: "Next.js + Supabase — Auth & მონაცემები",
-    desc: "ავტორიზაცია, როლები, მონაცემთა მოდელი და დაცვა.",
-    level: "გაღრმავებული",
-    priceLabel: "ფასიანი",
-    locked: true,
-    duration: "6 კვირა",
-    outcomes: [
-      "Next.js App Router-ის სწორი არქიტექტურა",
-      "Supabase Auth ინტეგრაცია და session flow",
-      "DB მოდელირება + policies (RLS) საფუძვლები",
-      "Protected routes და უსაფრთხო data fetching",
-    ],
-    syllabusPreview: [
-      {
-        title: "Module 1 — Next.js structure",
-        items: ["Routing", "Layouts", "Server components mindset"],
-      },
-      {
-        title: "Module 2 — Supabase Auth",
-        items: ["Sign in/up", "Session", "Server client"],
-      },
-      {
-        title: "Module 3 — Data & Security",
-        items: ["Tables", "RLS intro", "Protected pages"],
-      },
-    ],
-  },
-];
+function normalizeLevel(v: string | null): CourseLevel {
+  if (v === "საშუალო" || v === "გაღრმავებული" || v === "დამწყები") return v;
+  return "დამწყები";
+}
 
-/* ================= Page ================= */
+function normalizePriceLabel(v: string | null): PriceLabel {
+  if (v === "ფასიანი" || v === "უფასო") return v;
+  return "უფასო";
+}
 
-export default function CourseDetailsPage({
+function asArray(v: string[] | null | undefined) {
+  return Array.isArray(v) ? v : [];
+}
+
+export default async function CourseDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const course = COURSES.find((c) => c.id === params.id);
-  if (!course) return notFound();
+  const { id } = await params;
+
+  const supabase = await createClient();
+
+  // Public preview: show only published courses
+  const { data: course, error } = await supabase
+    .from("courses")
+    .select(
+      "id,title,description,status,price,price_label,duration,level,locked,audience,outcomes,topics,requirements"
+    )
+    .eq("id", id)
+    .eq("status", "published")
+    .single<CourseRow>();
+
+  if (error || !course) return notFound();
+
+  // Optional: resources (links/files)
+  const { data: resources } = await supabase
+    .from("course_resources")
+    .select("id,course_id,type,title,url,file_path,mime,size,created_at")
+    .eq("course_id", id)
+    .order("created_at", { ascending: false })
+    .returns<ResourceRow[]>();
+
+  const priceLabel = normalizePriceLabel(course.price_label);
+  const level = normalizeLevel(course.level);
+  const locked = typeof course.locked === "boolean" ? course.locked : true;
+  const duration = (course.duration ?? "").trim() || "—";
+
+  const audience = (course.audience ?? "").trim();
+  const outcomes = asArray(course.outcomes);
+  const topics = asArray(course.topics);
+  const requirements = asArray(course.requirements);
+
+  const links = (resources ?? []).filter((r) => r.type === "link");
+  const files = (resources ?? []).filter((r) => r.type === "file");
 
   return (
     <main className="container-page section-pad">
@@ -123,16 +100,14 @@ export default function CourseDetailsPage({
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="max-w-2xl">
           <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={
-                course.priceLabel === "უფასო" ? "badge-success" : "badge"
-              }
-            >
-              {course.priceLabel}
+            <span className={priceLabel === "უფასო" ? "badge-success" : "badge"}>
+              {priceLabel}
             </span>
-            <span className="badge-info">დონე: {course.level}</span>
-            <span className="badge">ხანგრძლივობა: {course.duration}</span>
-            {course.locked ? (
+
+            <span className="badge-info">დონე: {level}</span>
+            <span className="badge">ხანგრძლივობა: {duration}</span>
+
+            {locked ? (
               <span className="badge-warn">Locked</span>
             ) : (
               <span className="badge-success">Open</span>
@@ -144,7 +119,7 @@ export default function CourseDetailsPage({
           </h1>
 
           <p className="mt-2 text-sm leading-relaxed text-white/70">
-            {course.desc}
+            {(course.description ?? "").trim() || "მოკლე აღწერა დამატებული არ არის."}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -152,76 +127,138 @@ export default function CourseDetailsPage({
               ← ყველა კურსი
             </Link>
 
-            <Link
-              href={`/courses/${course.id}/learn`}
-              className="btn-secondary"
-            >
-              Learn
-            </Link>
+            {locked ? (
+              <Link href="/auth/sign-in" className="btn-primary">
+                შესვლა
+              </Link>
+            ) : (
+              <Link href="/dashboard" className="btn-primary">
+                დაწყება დეშბორდში
+              </Link>
+            )}
           </div>
         </div>
 
         {/* ===== Preview Card ===== */}
         <aside className="card md:w-[360px]">
-          <h2 className="text-lg font-semibold text-white/95">
-            Public preview
-          </h2>
+          <h2 className="text-lg font-semibold text-white/95">Public preview</h2>
           <p className="mt-2 text-sm text-white/70">
-            სრული გაკვეთილები ხელმისაწვდომი გახდება ავტორიზაციისა და (შემდგომში)
-            გადახდის შემდეგ.
+            სრული გაკვეთილები ხელმისაწვდომი გახდება ავტორიზაციისა და (შემდგომში) გადახდის შემდეგ.
           </p>
+
+          {priceLabel === "ფასიანი" ? (
+            <p className="mt-3 text-sm text-white/75">
+              ფასი: <span className="text-white/90">{course.price ?? "—"}</span>
+            </p>
+          ) : null}
         </aside>
       </div>
 
       {/* ===== Content ===== */}
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <section className="card">
-          <h2 className="text-lg font-semibold text-white/95">
-            რას ისწავლი
-          </h2>
-          <ul className="mt-3 space-y-2 text-sm text-white/70">
-            {course.outcomes.map((x) => (
-              <li key={x}>• {x}</li>
-            ))}
-          </ul>
+          <h2 className="text-lg font-semibold text-white/95">ვისთვისაა კურსი</h2>
+          <p className="mt-3 text-sm leading-relaxed text-white/70">
+            {audience || "ჯერ არ არის შევსებული."}
+          </p>
         </section>
 
         <section className="card">
-          <h2 className="text-lg font-semibold text-white/95">
-            სილაბუსი (Preview)
-          </h2>
-
-          <div className="mt-3 space-y-3">
-            {course.syllabusPreview.map((m) => (
-              <div
-                key={m.title}
-                className="rounded-xl border border-white/10 bg-white/5 p-3"
-              >
-                <p className="text-sm font-semibold text-white/90">
-                  {m.title}
-                </p>
-                <ul className="mt-2 space-y-1 text-sm text-white/70">
-                  {m.items.map((it) => (
-                    <li key={it}>- {it}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          <h2 className="text-lg font-semibold text-white/95">რას ისწავლი</h2>
+          {outcomes.length ? (
+            <ul className="mt-3 space-y-2 text-sm text-white/70">
+              {outcomes.map((x) => (
+                <li key={x}>• {x}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-white/70">ჯერ არ არის შევსებული.</p>
+          )}
         </section>
       </div>
 
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <section className="card">
+          <h2 className="text-lg font-semibold text-white/95">თემები / სილაბუსი</h2>
+          {topics.length ? (
+            <ul className="mt-3 space-y-2 text-sm text-white/70">
+              {topics.map((x) => (
+                <li key={x}>• {x}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-white/70">ჯერ არ არის შევსებული.</p>
+          )}
+        </section>
+
+        <section className="card">
+          <h2 className="text-lg font-semibold text-white/95">წინაპირობები</h2>
+          {requirements.length ? (
+            <ul className="mt-3 space-y-2 text-sm text-white/70">
+              {requirements.map((x) => (
+                <li key={x}>• {x}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-white/70">არ არის აუცილებელი (ან არ არის შევსებული).</p>
+          )}
+        </section>
+      </div>
+
+      {/* ===== Resources (optional) ===== */}
+      {(links.length || files.length) ? (
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <section className="card">
+            <h2 className="text-lg font-semibold text-white/95">რესურსები (ლინკები)</h2>
+            {links.length ? (
+              <ul className="mt-3 space-y-2 text-sm text-white/70">
+                {links.map((r) => (
+                 <li key={r.id} className="wrap-break-word">
+
+                    •{" "}
+                    <a
+                      className="underline underline-offset-4 hover:text-white"
+                      href={r.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {r.title?.trim() || r.url}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-white/70">ლინკები არ არის დამატებული.</p>
+            )}
+          </section>
+
+          <section className="card">
+            <h2 className="text-lg font-semibold text-white/95">მასალები (ფაილები)</h2>
+            {files.length ? (
+              <ul className="mt-3 space-y-2 text-sm text-white/70">
+                {files.map((r) => (
+                  <li key={r.id} className="wrap-break-word">
+
+                    • {r.title?.trim() || r.file_path || "ფაილი"}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-white/70">ფაილები არ არის დამატებული.</p>
+            )}
+          </section>
+        </div>
+      ) : null}
+
       {/* ===== Bottom CTA ===== */}
       <div className="mt-10 card">
-        <h3 className="text-lg font-semibold text-white/95">
-          შემდეგი ნაბიჯი
-        </h3>
+        <h3 className="text-lg font-semibold text-white/95">შემდეგი ნაბიჯი</h3>
         <p className="mt-2 text-sm leading-relaxed text-white/70">
           სრულ კონტენტზე წვდომა გაიხსნება ავტორიზაციის შემდეგ.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {course.locked ? (
+          {locked ? (
             <>
               <Link href="/auth/sign-in" className="btn-primary">
                 შესვლა

@@ -1,4 +1,11 @@
-// src/app/dashboard/my-courses/page.tsx
+// =======================================================
+// FILE: src/app/dashboard/my-courses/page.tsx
+// PURPOSE: My Courses (admin/instructor) — მხოლოდ ჩემი შექმნილი კურსები
+// NOTES:
+// - ქარდი აღარ არის clickable მთლიანად
+// - "რედაქტირება" არის ცალკე ღილაკი -> /dashboard/courses/[id]/edit
+// =======================================================
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -37,23 +44,6 @@ export default async function MyCoursesPage() {
             აქ ჩანს ყველა კურსი, რომელიც შენ შექმენი (დრაფტი და გამოქვეყნებული).
           </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/dashboard"
-            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-          >
-            ← დეშბორდი
-          </Link>
-
-          {/* Admin-ისთვისაც იმუშავებს, უბრალოდ სხვა users-საც შეუძლია შექმნა თუ RLS დაუშვებს */}
-          <Link
-            href="/dashboard/admin/courses/new"
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
-          >
-            კურსის შექმნა
-          </Link>
-        </div>
       </div>
 
       {/* Error */}
@@ -69,34 +59,36 @@ export default async function MyCoursesPage() {
           const title = c.title?.trim() || "უსათაურო კურსი";
           const statusLabel =
             c.status === "published" ? "გამოქვეყნებული" : "დრაფტი";
-          const priceLabel =
-            c.price == null ? "უფასო" : `ფასი: ${c.price}`;
+          const priceLabel = c.price == null ? "უფასო" : `ფასი: ${c.price}`;
           const updated = c.updated_at ?? "—";
 
           return (
-            <Link
+            <div
               key={c.id}
-              href={`/dashboard/admin/courses/${c.id}`}
-              className="block p-4 hover:bg-white/5"
+              className="flex flex-col gap-2 p-4 hover:bg-white/5 sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-white/90">
-                    {title}
-                  </div>
-                  <div className="mt-1 text-xs text-white/55">
-                    {priceLabel} • განახლდა: {updated}
-                  </div>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-white/90">
+                  {title}
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-white/75">
-                    {statusLabel}
-                  </span>
-                  <span className="text-white/40">→</span>
+                <div className="mt-1 text-xs text-white/55">
+                  {priceLabel} • განახლდა: {updated}
                 </div>
               </div>
-            </Link>
+
+              <div className="flex items-center gap-3">
+                <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-xs text-white/75">
+                  {statusLabel}
+                </span>
+<Link
+  href={`/dashboard/courses/${c.id}/edit`}
+  className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10 transition"
+>
+  რედაქტირება
+</Link>
+
+              </div>
+            </div>
           );
         })}
 
@@ -108,9 +100,8 @@ export default async function MyCoursesPage() {
       </div>
 
       <p className="mt-4 text-xs text-white/50">
-        * ახლა თითო კურსი გადაგიყვანს ადმინის კურსის დეტალზე. შემდეგ ეტაპზე ამ
-        გვერდზე დავამატებთ “რედაქტირებას”, “გამოქვეყნება/დრაფტზე დაბრუნებას” და
-        ფილტრებს.
+        * “რედაქტირება” ღილაკით გადადიხარ კურსის ცვლილებაზე: შინაარსი, ფასი,
+        სტატუსი.
       </p>
     </main>
   );

@@ -1,46 +1,75 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
-type Course = {
+type CourseLevel = "დამწყები" | "საშუალო" | "გაღრმავებული";
+type PriceLabel = "უფასო" | "ფასიანი";
+
+type CourseRow = {
   id: string;
   title: string;
-  desc: string;
-  level: "დამწყები" | "საშუალო" | "გაღრმავებული";
-  priceLabel: "უფასო" | "ფასიანი";
-  locked: boolean;
-  duration: string;
+  description: string | null;
+
+  status: "draft" | "published" | null;
+
+  price: number | null;
+  price_label: PriceLabel | null;
+
+  duration: string | null;
+  level: CourseLevel | null;
+
+  locked: boolean | null;
+
+  updated_at: string | null;
 };
 
-const COURSES: Course[] = [
-  {
-    id: "c1",
-    title: "Front-end საფუძვლები (HTML/CSS)",
-    desc: "სტრუქტურა, სტილები, რესპონსივი და მცირე პრაქტიკული პროექტები.",
-    level: "დამწყები",
-    priceLabel: "უფასო",
-    locked: false,
-    duration: "2–3 კვირა",
-  },
-  {
-    id: "c2",
-    title: "JavaScript პრაქტიკა — DOM & ლოგიკა",
-    desc: "სავარჯიშოები რეალური UI ამოცანებით: events, state, ფორმები.",
-    level: "საშუალო",
-    priceLabel: "ფასიანი",
-    locked: true,
-    duration: "4 კვირა",
-  },
-  {
-    id: "c3",
-    title: "Next.js + Supabase — Auth & მონაცემები",
-    desc: "ავტორიზაცია, როლები, მონაცემთა მოდელი და დაცვა.",
-    level: "გაღრმავებული",
-    priceLabel: "ფასიანი",
-    locked: true,
-    duration: "6 კვირა",
-  },
-];
+function normalizeLevel(v: string | null): CourseLevel {
+  if (v === "საშუალო" || v === "გაღრმავებული" || v === "დამწყები") return v;
+  return "დამწყები";
+}
 
-export default function CoursesPage() {
+function normalizePriceLabel(v: string | null): PriceLabel {
+  if (v === "ფასიანი" || v === "უფასო") return v;
+  return "უფასო";
+}
+
+export default async function CoursesPage() {
+  const supabase = await createClient();
+
+  // Public preview: only published
+  const { data, error } = await supabase
+    .from("courses")
+    .select(
+      "id,title,description,status,price,price_label,duration,level,locked,updated_at"
+    )
+    .eq("status", "published")
+    .order("updated_at", { ascending: false })
+    .returns<CourseRow[]>();
+
+  const courses = (data ?? []).map((c) => {
+    const priceLabel = normalizePriceLabel(c.price_label);
+    const level = normalizeLevel(c.level);
+
+    // locked: თუ null-ია, ჩავთვალოთ true (უსაფრთხო default)
+    const locked = typeof c.locked === "boolean" ? c.locked : true;
+
+    // duration: თუ ცარიელია, ვაჩვენოთ "-"
+    const duration = (c.duration ?? "").trim() || "—";
+
+    // desc: ბარათზე მოკლე ტექსტად
+    const desc = (c.description ?? "").trim();
+
+    return {
+      id: c.id,
+      title: c.title,
+      desc,
+      level,
+      priceLabel,
+      locked,
+      duration,
+      price: c.price,
+    };
+  });
+
   return (
     <main className="container-page section-pad">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -54,8 +83,35 @@ export default function CoursesPage() {
         </div>
       </div>
 
+      {/* Error block (dev-friendly) */}
+      {error ? (
+        <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-red-200">
+          {error.message}
+        </div>
+      ) : null}
+
+      {/* Empty state */}
+      {!error && courses.length === 0 ? (
+        <div className="mt-6 card p-5">
+          <h3 className="text-lg font-semibold text-white/95">ჯერ კურსი არ გამოქვეყნებულა</h3>
+          <p className="mt-2 text-sm leading-relaxed text-white/70">
+            Public გვერდზე ჩანს მხოლოდ <span className="text-white/85">published</span> სტატუსის კურსები.
+            თუ ახლა შექმენი კურსი და არის <span className="text-white/85">draft</span>, ჯერ გამოაქვეყნე.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link className="btn-primary" href="/auth/sign-in">
+              შესვლა
+            </Link>
+            <Link className="btn-secondary" href="/contact">
+              კითხვა გაქვს?
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Grid */}
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        {COURSES.map((c) => (
+        {courses.map((c) => (
           <div key={c.id} className="card">
             <div className="flex items-center justify-between text-xs">
               <span className={c.priceLabel === "უფასო" ? "badge-success" : "badge"}>
@@ -65,11 +121,22 @@ export default function CoursesPage() {
             </div>
 
             <h2 className="mt-4 text-lg font-semibold text-white/95">{c.title}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/70">{c.desc}</p>
+
+            {c.desc ? (
+              <p className="mt-2 text-sm leading-relaxed text-white/70">{c.desc}</p>
+            ) : (
+              <p className="mt-2 text-sm leading-relaxed text-white/60">
+                მოკლე აღწერა დამატებული არ არის.
+              </p>
+            )}
 
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="badge-info">დონე: {c.level}</span>
-              {c.locked ? <span className="badge-warn">Locked</span> : <span className="badge-success">Open</span>}
+              {c.locked ? (
+                <span className="badge-warn">Locked</span>
+              ) : (
+                <span className="badge-success">Open</span>
+              )}
             </div>
 
             <div className="mt-5 flex gap-2">
@@ -100,6 +167,7 @@ export default function CoursesPage() {
           შემდეგ ეტაპზე გაიხსნება Auth + Payment gating-ის შემდეგ.
         </p>
       </div>
+
       <div className="mt-8 card">
         <h3 className="text-lg font-semibold text-white/95">როგორ გაიხსნება სრული წვდომა?</h3>
         <p className="mt-2 text-sm leading-relaxed text-white/70">
