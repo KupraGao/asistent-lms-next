@@ -202,14 +202,14 @@ export default async function AdminDashboardPage() {
         <h2 className="text-sm font-semibold text-white/80">სწრაფი მოქმედებები</h2>
 
         <div className="mt-3 flex flex-wrap gap-2">
+          {/* NOTE: კურსების გვერდები ახლა role-neutral არის: /dashboard/courses */}
           <Link
-            href="/dashboard/admin/courses"
+            href="/dashboard/courses"
             className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
           >
             ყველა კურსი
           </Link>
 
-          {/* NOTE: ეს ორი ლინკი role-agnostic გვერდებზე გადის */}
           <Link
             href="/dashboard/my-courses"
             className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
@@ -238,8 +238,9 @@ export default async function AdminDashboardPage() {
             ყველა სტუდენტი
           </Link>
 
+          {/* NOTE: კურსის შექმნა ასევე shared-ზე გადავიდა */}
           <Link
-            href="/dashboard/admin/courses/new"
+            href="/dashboard/courses/new"
             className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
           >
             კურსის შექმნა
@@ -257,7 +258,7 @@ export default async function AdminDashboardPage() {
           </h2>
 
           <Link
-            href="/dashboard/admin/courses"
+            href="/dashboard/courses"
             className="text-sm font-semibold text-white/70 hover:text-white/90"
           >
             სრული სიის ნახვა →
@@ -268,7 +269,7 @@ export default async function AdminDashboardPage() {
           {recentCourses.map((c) => (
             <Link
               key={c.id}
-              href={`/dashboard/admin/courses/${c.id}`}
+              href={`/dashboard/courses/${c.id}`}
               className="block p-4 hover:bg-white/5"
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
