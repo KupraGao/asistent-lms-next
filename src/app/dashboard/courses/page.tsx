@@ -1,10 +1,10 @@
 // =======================================================
 // FILE: src/app/dashboard/courses/page.tsx
-// PURPOSE: Dashboard Courses List (Admin: all courses + manage; Instructor: own courses)
+// PURPOSE: Dashboard Courses List
+// - Admin: ALL courses + manage actions (publish/delete/edit)
+// - Instructor/Student: Published-only catalog
 // NOTES:
-// - /dashboard/courses => list + search + status filter
-// - admin: sees ALL courses + manage actions (publish/delete/edit)
-// - instructor: sees ONLY own courses
+// - /dashboard/courses => list + search + status filter (admin can use status filter)
 // =======================================================
 
 import Link from "next/link";
@@ -48,6 +48,8 @@ export default async function DashboardCoursesPage({
 
   if (!user) redirect("/auth/sign-in");
 
+  const isAdmin = info.role === "admin";
+
   // -----------------------------
   // 2) Read query params (search/filter)
   // -----------------------------
@@ -55,8 +57,13 @@ export default async function DashboardCoursesPage({
   const q = firstParam(sp.q).trim();
   const statusParam = firstParam(sp.status).trim();
 
+  // NOTE:
+  // - Admin-ს შეუძლია status ფილტრი (draft/published)
+  // - Non-admin-ს status ფილტრი არ ვაძლევთ (რადგან მათ მხოლოდ published კატალოგი უნდა ნახონ)
   const status: "" | CourseStatus =
-    statusParam === "draft" || statusParam === "published" ? statusParam : "";
+    isAdmin && (statusParam === "draft" || statusParam === "published")
+      ? statusParam
+      : "";
 
   // -----------------------------
   // 3) Build query
@@ -66,9 +73,15 @@ export default async function DashboardCoursesPage({
     .select("id,title,status,author_id,updated_at")
     .order("updated_at", { ascending: false });
 
-  // instructor => only own courses; admin => all courses
-  if (info.role !== "admin") {
-    query = query.eq("author_id", user.id);
+  // =======================================================
+  // ✅ FIX (აქ იყო პრობლემა)
+  // ძველი ლოგიკა: non-admin => მხოლოდ თავისი კურსები (author_id=user.id)
+  // ახალი ლოგიკა:
+  //   - admin => ყველა კურსი (არ ვზღუდავთ)
+  //   - instructor/student => მხოლოდ published (კატალოგი)
+  // =======================================================
+  if (!isAdmin) {
+    query = query.eq("status", "published");
   }
 
   if (q) {
@@ -91,12 +104,13 @@ export default async function DashboardCoursesPage({
         <div>
           <h1 className="text-2xl font-semibold text-white/95">ყველა კურსი</h1>
           <p className="mt-1 text-sm text-white/60">
-            {info.role === "admin"
+            {isAdmin
               ? "ადმინი ხედავს ყველა კურსს და აქვს მართვის უფლება."
-              : "ინსტრუქტორი ხედავს მხოლოდ თავის კურსებს."}
+              : "აქ ჩანს მხოლოდ გამოქვეყნებული კურსები (კატალოგი). შენი კურსები ნახე „ჩემი კურსები“-ში."}
           </p>
         </div>
 
+        {/* create: admin + instructor (თუ new გვერდზე სწორად გაქვს guard) */}
         <Link
           href="/dashboard/courses/new"
           className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
@@ -119,7 +133,12 @@ export default async function DashboardCoursesPage({
           name="status"
           defaultValue={status}
           aria-label="კურსის სტატუსის ფილტრი"
-          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/85"
+          disabled={!isAdmin}
+          title={!isAdmin ? "სტატუსის ფილტრი მხოლოდ ადმინისთვისაა" : undefined}
+          className={
+            "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/85 " +
+            (!isAdmin ? "opacity-60" : "")
+          }
         >
           <option value="">ყველა სტატუსი</option>
           <option value="draft">დრაფტი</option>
@@ -165,7 +184,7 @@ export default async function DashboardCoursesPage({
                     {c.status === "published" ? "გამოქვეყნებული" : "დრაფტი"}
                   </span>
 
-                  {info.role === "admin" ? (
+                  {isAdmin ? (
                     <span className="text-white/45">ავტორი: {c.author_id ?? "—"}</span>
                   ) : null}
                 </div>
@@ -174,7 +193,7 @@ export default async function DashboardCoursesPage({
               <CourseRowActions
                 courseId={c.id}
                 status={c.status === "published" ? "published" : "draft"}
-                canManage={info.role === "admin"}
+                canManage={isAdmin}
               />
             </div>
           ))

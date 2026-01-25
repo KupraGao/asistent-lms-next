@@ -198,55 +198,7 @@ export default async function AdminDashboardPage() {
       {/* ===================================================
           QUICK ACTIONS: ლინკები admin-ის მთავარ გვერდებზე
          =================================================== */}
-      <section className="mt-6">
-        <h2 className="text-sm font-semibold text-white/80">სწრაფი მოქმედებები</h2>
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          {/* NOTE: კურსების გვერდები ახლა role-neutral არის: /dashboard/courses */}
-          <Link
-            href="/dashboard/courses"
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
-          >
-            ყველა კურსი
-          </Link>
-
-          <Link
-            href="/dashboard/my-courses"
-            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-          >
-            ჩემი კურსები
-          </Link>
-
-          <Link
-            href="/dashboard/my-learning"
-            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-          >
-            შეძენილი კურსები
-          </Link>
-
-          <Link
-            href="/dashboard/admin/instructors"
-            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-          >
-            ინსტრუქტორები
-          </Link>
-
-          <Link
-            href="/dashboard/admin/students"
-            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-          >
-            ყველა სტუდენტი
-          </Link>
-
-          {/* NOTE: კურსის შექმნა ასევე shared-ზე გადავიდა */}
-          <Link
-            href="/dashboard/courses/new"
-            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-          >
-            კურსის შექმნა
-          </Link>
-        </div>
-      </section>
 
       {/* ===================================================
           COURSES PREVIEW: recentCourses placeholder

@@ -1,7 +1,7 @@
 // =======================================================
-// FILE: src/app/dashboard/admin/courses/new/page.tsx
-// PURPOSE: Admin -> ახალი კურსის შექმნა (ფორმა + Server Action)
-// ACCESS: მხოლოდ admin
+// FILE: src/app/dashboard/courses/new/page.tsx
+// PURPOSE: Shared -> ახალი კურსის შექმნა (ფორმა + Server Action)
+// ACCESS: admin + instructor (student არ უნდა შევუშვათ)
 // =======================================================
 
 import Link from "next/link";
@@ -20,6 +20,16 @@ async function createCourseAction(formData: FormData) {
   "use server";
 
   // -----------------------------
+  // A) Role guard (admin/instructor only)
+  // ✅ FIX: ადრე მხოლოდ admin იყო
+  // -----------------------------
+  const info = await getUserRole();
+  if (!info) redirect("/auth/sign-in");
+  if (info.role !== "admin" && info.role !== "instructor") {
+    redirect("/dashboard?error=" + encodeURIComponent("კურსის შექმნა მხოლოდ ინსტრუქტორს/ადმინს შეუძლია."));
+  }
+
+  // -----------------------------
   // 1) FormData -> value parsing
   // -----------------------------
   const title = String(formData.get("title") ?? "").trim();
@@ -31,8 +41,9 @@ async function createCourseAction(formData: FormData) {
   // 2) Validation: title required
   // -----------------------------
   if (!title) {
+    // ✅ FIX: redirect ახალ მისამართზე
     redirect(
-      "/dashboard/admin/courses/new?error=" +
+      "/dashboard/courses/new?error=" +
         encodeURIComponent("კურსის სათაური აუცილებელია.")
     );
   }
@@ -47,8 +58,9 @@ async function createCourseAction(formData: FormData) {
   // 4) Validation: price format
   // -----------------------------
   if (priceRaw && Number.isNaN(price)) {
+    // ✅ FIX: redirect ახალ მისამართზე
     redirect(
-      "/dashboard/admin/courses/new?error=" +
+      "/dashboard/courses/new?error=" +
         encodeURIComponent("ფასის ფორმატი არასწორია.")
     );
   }
@@ -80,36 +92,37 @@ async function createCourseAction(formData: FormData) {
   // -----------------------------
   if (error) {
     redirect(
-      "/dashboard/admin/courses/new?error=" +
+      "/dashboard/courses/new?error=" +
         encodeURIComponent("კურსის შექმნა ვერ მოხერხდა: " + error.message)
     );
   }
 
+  // ✅ FIX: success redirect ახალ სიის გვერდზე
   redirect(
-    "/dashboard/admin/courses?success=" + encodeURIComponent("კურსი შეიქმნა.")
+    "/dashboard/courses?success=" + encodeURIComponent("კურსი შეიქმნა.")
   );
 }
 
 // =======================================================
-// PAGE: AdminCourseNewPage
-// - role guard (მხოლოდ admin)
+// PAGE: CourseNewPage
+// - role guard (admin/instructor)
 // - კითხულობს searchParams error/success-ს
 // - აჩვენებს კურსის შექმნის ფორმას
 // =======================================================
-export default async function AdminCourseNewPage({
+export default async function CourseNewPage({
   searchParams,
 }: {
-  // NOTE: Next.js სტანდარტულად searchParams არის object.
-  // შენთან Promise-ად გაქვს — თუ პროექტში ასე გაქვს, OK.
-  // თუ TypeScript/Next update გაწუხებს, მერე გადავაკეთებთ object-ზე.
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   // -----------------------------
   // A) Role guard
+  // ✅ FIX: admin + instructor
   // -----------------------------
   const info = await getUserRole();
   if (!info) redirect("/auth/sign-in");
-  if (info.role !== "admin") redirect("/dashboard");
+  if (info.role !== "admin" && info.role !== "instructor") {
+    redirect("/dashboard");
+  }
 
   // -----------------------------
   // B) Read query params
@@ -132,25 +145,6 @@ export default async function AdminCourseNewPage({
 
   return (
     <main className="container-page section-pad">
-      {/* =========================
-          TOP NAV
-         ========================= */}
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <Link
-          href="/dashboard/admin"
-          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-        >
-          ← ადმინის პანელი
-        </Link>
-
-        <Link
-          href="/dashboard/admin/courses"
-          className="text-sm font-semibold text-white/70 hover:text-white/90"
-        >
-          ყველა კურსი →
-        </Link>
-      </div>
-
       {/* =========================
           HEADINGS
          ========================= */}
