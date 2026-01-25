@@ -4,7 +4,6 @@
 // ACCESS: admin + instructor (student არ უნდა შევუშვათ)
 // =======================================================
 
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/auth/role";
