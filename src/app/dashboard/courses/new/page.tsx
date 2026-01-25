@@ -2,16 +2,12 @@
 // FILE: src/app/dashboard/courses/new/page.tsx
 // PURPOSE: Shared -> ახალი კურსის შექმნა (ფორმა + Server Action + Resources Upload)
 // ACCESS: admin + instructor (student არ უნდა შევუშვათ)
-// NOTES:
-// - ❌ აღარ ვინახავთ DB-ში signed URL-ს (ის იწურება)
-// - ✅ DB-ში ვინახავთ file_path-ს და url-ში ვდებ stub-ს (stable), ხოლო signed URL-ს ვქმნით ნახვის დროს
-// - ✅ Server Action form-ზე encType/method არ იწერება (Next.js თვითონ აყენებს multipart)
-// - (სურვილისამებრ) შეგიძლია დაამატო: export const runtime = "nodejs";
 // =======================================================
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/auth/role";
+import AutoGrowTextarea from "@/components/AutoGrowTextarea";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -22,7 +18,7 @@ type CourseResourceInsert = {
   course_id: string;
   type: "link" | "file";
   title: string | null;
-  url: string; // link: actual URL, file: stable stub (NOT signed)
+  url: string;
   file_path: string | null;
   mime: string | null;
   size: number | null;
@@ -46,7 +42,6 @@ function safeFileName(name: string) {
 async function createCourseAction(formData: FormData) {
   "use server";
 
-  // A) Role guard (admin/instructor only)
   const info = await getUserRole();
   if (!info) redirect("/auth/sign-in");
 
@@ -57,7 +52,6 @@ async function createCourseAction(formData: FormData) {
     );
   }
 
-  // 1) FormData -> value parsing
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
 
@@ -82,7 +76,6 @@ async function createCourseAction(formData: FormData) {
     (f) => f && typeof f.name === "string" && f.size > 0
   );
 
-  // 2) Validation
   if (!title) {
     redirect(
       "/dashboard/courses/new?error=" +
@@ -124,7 +117,6 @@ async function createCourseAction(formData: FormData) {
     );
   }
 
-  // 3) Normalize
   const status = statusRaw === "published" ? "published" : "draft";
 
   const priceLabel: PriceLabel =
@@ -139,7 +131,6 @@ async function createCourseAction(formData: FormData) {
 
   const locked = lockedRaw === "true";
 
-  // 4) Price logic
   let price: number | null = null;
 
   if (priceLabel === "ფასიანი") {
@@ -167,7 +158,6 @@ async function createCourseAction(formData: FormData) {
 
   const requirements = linesToArray(requirementsRaw);
 
-  // 5) Auth
   const supabase = await createClient();
   const {
     data: { user },
@@ -175,7 +165,6 @@ async function createCourseAction(formData: FormData) {
 
   if (!user) redirect("/auth/sign-in");
 
-  // 6) Insert course
   const { data: created, error: courseErr } = await supabase
     .from("courses")
     .insert({
@@ -207,7 +196,6 @@ async function createCourseAction(formData: FormData) {
 
   const courseId = created.id as string;
 
-  // 7) Insert LINKS into course_resources
   if (resource_links.length) {
     const linkRows: CourseResourceInsert[] = resource_links.map((url) => ({
       course_id: courseId,
@@ -232,7 +220,6 @@ async function createCourseAction(formData: FormData) {
     }
   }
 
-  // 8) Upload FILES + insert rows (DB-ში ვწერთ file_path-ს; signed URL არა)
   if (cleanFiles.length) {
     const fileRows: CourseResourceInsert[] = [];
 
@@ -252,18 +239,34 @@ async function createCourseAction(formData: FormData) {
         redirect(
           "/dashboard/courses/new?error=" +
             encodeURIComponent(
-              `ფაილის ატვირთვა ვერ მოხერხდა (${cleanName}): ${uploadErr.message}`
+              "ფაილის ატვირთვა ვერ მოხერხდა (" +
+                cleanName +
+                "): " +
+                uploadErr.message
             )
         );
       }
 
-      const stableUrl = `storage://course-assets/${path}`;
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("course-assets")
+        .createSignedUrl(path, 60 * 60);
+
+      if (signErr) {
+        redirect(
+          "/dashboard/courses/new?error=" +
+            encodeURIComponent(
+              "Signed URL ვერ შეიქმნა (" + cleanName + "): " + signErr.message
+            )
+        );
+      }
+
+      const url = signed?.signedUrl ?? `storage://course-assets/${path}`;
 
       fileRows.push({
         course_id: courseId,
         type: "file",
         title: cleanName,
-        url: stableUrl,
+        url,
         file_path: path,
         mime: f.type || null,
         size: f.size || null,
@@ -322,6 +325,9 @@ export default async function CourseNewPage({
       ? sp.success[0]
       : undefined;
 
+  // label spacing (ზემოთ/ქვემოთ სივრცე)
+  const labelClass = "block text-sm text-white/80 my-1.5";
+
   return (
     <main className="container-page section-pad">
       <div className="flex flex-col gap-1">
@@ -343,7 +349,6 @@ export default async function CourseNewPage({
         </div>
       ) : null}
 
-      {/* ✅ IMPORTANT: Server Action form-ზე encType/method არ ვუთითებთ */}
       <form action={createCourseAction} className="mt-6 grid gap-4">
         {/* =========================
             SECTION 1: BASIC
@@ -357,8 +362,8 @@ export default async function CourseNewPage({
           </p>
 
           <div className="mt-4 grid gap-3">
-            <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-title">
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-title">
                 კურსის სათაური
               </label>
               <input
@@ -371,20 +376,17 @@ export default async function CourseNewPage({
               />
             </div>
 
-            <div className="grid gap-1.5">
-              <label
-                className="text-sm text-white/80"
-                htmlFor="course-description"
-              >
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-description">
                 მოკლე აღწერა
               </label>
-              <textarea
+              <AutoGrowTextarea
                 id="course-description"
                 className="auth-input"
                 name="description"
                 aria-label="მოკლე აღწერა"
                 placeholder="მოკლე აღწერა (ბარათზე/preview-ზე გამოჩნდება)"
-                rows={4}
+                minRows={4}
               />
             </div>
           </div>
@@ -400,11 +402,8 @@ export default async function CourseNewPage({
           </p>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <div className="grid gap-1.5">
-              <label
-                className="text-sm text-white/80"
-                htmlFor="course-price-label"
-              >
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-price-label">
                 ტიპი (უფასო/ფასიანი)
               </label>
               <select
@@ -420,8 +419,8 @@ export default async function CourseNewPage({
               </select>
             </div>
 
-            <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-price">
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-price">
                 ფასი
               </label>
               <input
@@ -438,11 +437,8 @@ export default async function CourseNewPage({
           </div>
 
           <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <div className="grid gap-1.5">
-              <label
-                className="text-sm text-white/80"
-                htmlFor="course-duration"
-              >
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-duration">
                 ხანგრძლივობა
               </label>
               <input
@@ -455,8 +451,8 @@ export default async function CourseNewPage({
               />
             </div>
 
-            <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-level">
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-level">
                 დონე
               </label>
               <select
@@ -473,8 +469,8 @@ export default async function CourseNewPage({
               </select>
             </div>
 
-            <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-locked">
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-locked">
                 წვდომა
               </label>
               <select
@@ -491,8 +487,8 @@ export default async function CourseNewPage({
             </div>
           </div>
 
-          <div className="mt-3 grid gap-1.5">
-            <label className="text-sm text-white/80" htmlFor="course-status">
+          <div className="mt-3 grid gap-3">
+            <label className={labelClass} htmlFor="course-status">
               კურსის სტატუსი
             </label>
             <select
@@ -513,75 +509,67 @@ export default async function CourseNewPage({
             SECTION 3: CONTENT
            ========================= */}
         <section className="card p-4 md:p-5">
-          <h2 className="text-base font-semibold text-white/90">
-            კურსის დეტალები
-          </h2>
+          <h2 className="text-base font-semibold text-white/90">კურსის დეტალები</h2>
           <p className="mt-1 text-sm text-white/60">
             ეს გამოჩნდება “დეტალებში”: ვისთვისაა, რას ისწავლი, თემები და ა.შ.
           </p>
 
           <div className="mt-4 grid gap-3">
-            <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-audience">
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-audience">
                 ვისთვისაა კურსი
               </label>
-              <textarea
+              <AutoGrowTextarea
                 id="course-audience"
                 className="auth-input"
                 name="audience"
                 required
                 placeholder="ვინ არის მიზნობრივი აუდიტორია?"
                 aria-label="ვისთვისაა კურსი"
-                rows={3}
+                minRows={3}
               />
             </div>
 
-            <div className="grid gap-1.5">
-              <label
-                className="text-sm text-white/80"
-                htmlFor="course-outcomes"
-              >
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-outcomes">
                 რას ისწავლი (თითო ხაზი — 1 პუნქტი)
               </label>
-              <textarea
+              <AutoGrowTextarea
                 id="course-outcomes"
                 className="auth-input"
                 name="outcomes"
                 required
                 aria-label="რას ისწავლი"
-                rows={6}
+                minRows={6}
                 placeholder={"მაგ:\nHTML სტრუქტურა\nCSS layout\nResponsive UI"}
               />
             </div>
 
-            <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-topics">
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-topics">
                 თემები / სილაბუსი (თითო ხაზი — 1 თემა)
               </label>
-              <textarea
+              <AutoGrowTextarea
                 id="course-topics"
                 className="auth-input"
                 name="topics"
                 required
                 aria-label="თემები / სილაბუსი"
-                rows={6}
+                minRows={6}
                 placeholder={"მაგ:\nHTML Basics\nCSS Basics\nFlex/Grid"}
               />
             </div>
 
-            <div className="grid gap-1.5">
-              <label
-                className="text-sm text-white/80"
-                htmlFor="course-requirements"
-              >
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-requirements">
                 წინაპირობები (optional, თითო ხაზი — 1 პუნქტი)
               </label>
-              <textarea
+              <AutoGrowTextarea
                 id="course-requirements"
                 className="auth-input"
                 name="requirements"
                 aria-label="წინაპირობები"
-                rows={4}
+                minRows={4}
                 placeholder={"მაგ:\nHTML/CSS საბაზისო ცოდნა"}
               />
             </div>
@@ -598,27 +586,24 @@ export default async function CourseNewPage({
           </p>
 
           <div className="mt-4 grid gap-3">
-            <div className="grid gap-1.5">
-              <label
-                className="text-sm text-white/80"
-                htmlFor="course-resource-links"
-              >
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-resource-links">
                 მასალების ლინკები (optional)
               </label>
-              <textarea
+              <AutoGrowTextarea
                 id="course-resource-links"
                 className="auth-input"
                 name="resource_links"
                 aria-label="მასალების ლინკები"
-                rows={4}
+                minRows={4}
                 placeholder={
                   "თითო ხაზზე ერთი ლინკი\nმაგ:\nhttps://youtu.be/...\nhttps://drive.google.com/...\nhttps://notion.so/..."
                 }
               />
             </div>
 
-            <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-files">
+            <div className="grid gap-3">
+              <label className={labelClass} htmlFor="course-files">
                 ფაილების ატვირთვა (optional)
               </label>
               <input
@@ -632,8 +617,8 @@ export default async function CourseNewPage({
                 title="ფაილების ატვირთვა"
               />
               <p className="text-xs text-white/60">
-                ატვირთე PDF/ZIP/სურათი/ვიდეო. დიდი ვიდეოებისთვის შემდეგ ეტაპზე უკეთეს
-                ატვირთვას გავაკეთებთ.
+                ატვირთე PDF/ZIP/სურათი/ვიდეო. დიდი ვიდეოებისთვის შემდეგ ეტაპზე უკეთეს ატვირთვას
+                გავაკეთებთ.
               </p>
             </div>
           </div>
@@ -643,10 +628,7 @@ export default async function CourseNewPage({
             ACTIONS
            ========================= */}
         <div className="flex flex-col gap-2 md:flex-row md:justify-end">
-          <button
-            type="submit"
-            className="btn-primary w-full md:w-auto justify-center"
-          >
+          <button type="submit" className="btn-primary w-full md:w-auto justify-center">
             შექმნა
           </button>
         </div>

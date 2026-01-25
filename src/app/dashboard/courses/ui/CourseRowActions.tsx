@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { deleteCourseAction, togglePublishAction } from "../actions";
 
 export default function CourseRowActions({
@@ -12,10 +14,12 @@ export default function CourseRowActions({
   status: "draft" | "published";
   canManage: boolean;
 }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
   const nextStatus = status === "published" ? "draft" : "published";
 
-  // instructor-სთვის UI უბრალოდ edit link-ით შემოვიფარგლოთ (ან საერთოდ დავმალოთ)
-  // შენ თქვი: admin-ს უნდა მართვა; ამიტომ canManage=false-ზე მხოლოდ "გახსნა" / "რედაქტირება" შეგვიძლია.
+  // instructor/student UI: open + edit
   if (!canManage) {
     return (
       <div className="flex items-center gap-2">
@@ -45,17 +49,32 @@ export default function CourseRowActions({
         რედაქტირება
       </Link>
 
-      <form action={togglePublishAction}>
-        <input type="hidden" name="courseId" value={courseId} />
-        <input type="hidden" name="nextStatus" value={nextStatus} />
-        <button
-          type="submit"
-          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
-        >
-          {status === "published" ? "დრაფტად გადაყვანა" : "გამოქვეყნება"}
-        </button>
-      </form>
+      {/* ✅ Toggle publish/draft — refresh without manual page reload */}
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => {
+          startTransition(async () => {
+            const fd = new FormData();
+            fd.set("courseId", courseId);
+            fd.set("nextStatus", nextStatus);
 
+            await togglePublishAction(fd);
+
+            // ✅ აი ეს აგვარებს პრობლემას: RSC თავიდან წაიკითხავს და სტატუსი შეიცვლება
+            router.refresh();
+          });
+        }}
+        className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10 disabled:opacity-60"
+      >
+        {pending
+          ? "..."
+          : status === "published"
+          ? "დრაფტად გადაყვანა"
+          : "გამოქვეყნება"}
+      </button>
+
+      {/* Delete 그대로 დავტოვე */}
       <form
         action={deleteCourseAction}
         onSubmit={(e) => {

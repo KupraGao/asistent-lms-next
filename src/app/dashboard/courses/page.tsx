@@ -13,21 +13,46 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/auth/role";
 import CourseRowActions from "./ui/CourseRowActions";
 
+export const dynamic = "force-dynamic";
+
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 type CourseStatus = "draft" | "published";
+
 type CourseRow = {
   id: string;
   title: string;
   status: CourseStatus | null;
   author_id: string | null;
   updated_at: string | null;
+
+  // ✅ ზოგჯერ Supabase აბრუნებს ობიექტს, ზოგჯერ array-ს — ორივეს გავუძლებთ
+  author?: { full_name: string | null } | { full_name: string | null }[] | null;
 };
 
 function firstParam(v: string | string[] | undefined): string {
   if (typeof v === "string") return v;
   if (Array.isArray(v)) return v[0] ?? "";
   return "";
+}
+
+function formatUpdatedAt(v: string | null) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  return d.toLocaleString("ka-GE", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getAuthorName(author: CourseRow["author"]): string {
+  if (!author) return "—";
+  if (Array.isArray(author)) return author?.[0]?.full_name?.trim() || "—";
+  return author.full_name?.trim() || "—";
 }
 
 export default async function DashboardCoursesPage({
@@ -57,9 +82,6 @@ export default async function DashboardCoursesPage({
   const q = firstParam(sp.q).trim();
   const statusParam = firstParam(sp.status).trim();
 
-  // NOTE:
-  // - Admin-ს შეუძლია status ფილტრი (draft/published)
-  // - Non-admin-ს status ფილტრი არ ვაძლევთ (რადგან მათ მხოლოდ published კატალოგი უნდა ნახონ)
   const status: "" | CourseStatus =
     isAdmin && (statusParam === "draft" || statusParam === "published")
       ? statusParam
@@ -70,16 +92,9 @@ export default async function DashboardCoursesPage({
   // -----------------------------
   let query = supabase
     .from("courses")
-    .select("id,title,status,author_id,updated_at")
+    .select("id,title,status,author_id,updated_at,author:profiles(full_name)")
     .order("updated_at", { ascending: false });
 
-  // =======================================================
-  // ✅ FIX (აქ იყო პრობლემა)
-  // ძველი ლოგიკა: non-admin => მხოლოდ თავისი კურსები (author_id=user.id)
-  // ახალი ლოგიკა:
-  //   - admin => ყველა კურსი (არ ვზღუდავთ)
-  //   - instructor/student => მხოლოდ published (კატალოგი)
-  // =======================================================
   if (!isAdmin) {
     query = query.eq("status", "published");
   }
@@ -109,17 +124,8 @@ export default async function DashboardCoursesPage({
               : "აქ ჩანს მხოლოდ გამოქვეყნებული კურსები (კატალოგი). შენი კურსები ნახე „ჩემი კურსები“-ში."}
           </p>
         </div>
-
-        {/* create: admin + instructor (თუ new გვერდზე სწორად გაქვს guard) */}
-        <Link
-          href="/dashboard/courses/new"
-          className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
-        >
-          კურსის შექმნა
-        </Link>
       </div>
 
-      {/* Filters */}
       <form className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_220px_auto] sm:items-center">
         <input
           name="q"
@@ -153,57 +159,63 @@ export default async function DashboardCoursesPage({
         </button>
       </form>
 
-      {/* Errors */}
       {error ? (
         <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
           ვერ ჩაიტვირთა კურსები: {error.message}
         </div>
       ) : null}
 
-      {/* List */}
       <div className="mt-6 divide-y divide-white/10 rounded-xl border border-white/10 bg-white/5">
         {courses.length === 0 ? (
           <div className="p-5 text-sm text-white/60">კურსი ვერ მოიძებნა.</div>
         ) : (
-          courses.map((c) => (
-            <div
-              key={c.id}
-              className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0">
-                <Link
-                  href={`/dashboard/courses/${c.id}`}
-                  className="block truncate text-sm font-semibold text-white/90 hover:text-white"
-                  title={c.title}
-                >
-                  {c.title}
-                </Link>
+          courses.map((c) => {
+            const authorName = getAuthorName(c.author);
+            const updatedLabel = formatUpdatedAt(c.updated_at);
 
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/55">
-                  <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-white/75">
-                    {c.status === "published" ? "გამოქვეყნებული" : "დრაფტი"}
-                  </span>
+            return (
+              <div
+                key={c.id}
+                className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <Link
+                    href={`/dashboard/courses/${c.id}`}
+                    className="block truncate text-sm font-semibold text-white/90 hover:text-white"
+                    title={c.title}
+                  >
+                    {c.title}
+                  </Link>
 
-                  {isAdmin ? (
-                    <span className="text-white/45">ავტორი: {c.author_id ?? "—"}</span>
-                  ) : null}
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/55">
+                    <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-white/75">
+                      {c.status === "published" ? "გამოქვეყნებული" : "დრაფტი"}
+                    </span>
+
+                    <span className="text-white/55">განახლდა: {updatedLabel}</span>
+
+                    {isAdmin ? (
+  <span className="text-white/80 font-semibold">
+    ავტორი:{" "}
+    <span className="ml-1 text-white text-sm font-bold tracking-wide">
+      {authorName}
+    </span>
+  </span>
+) : null}
+
+                  </div>
                 </div>
-              </div>
 
-              <CourseRowActions
-                courseId={c.id}
-                status={c.status === "published" ? "published" : "draft"}
-                canManage={isAdmin}
-              />
-            </div>
-          ))
+                <CourseRowActions
+                  courseId={c.id}
+                  status={c.status === "published" ? "published" : "draft"}
+                  canManage={isAdmin}
+                />
+              </div>
+            );
+          })
         )}
       </div>
-
-      <p className="mt-4 text-xs text-white/45">
-        შენიშვნა: “ავტორი” ახლა დროებით author_id-ით ჩანს. თუ courses.author_id → profiles.id FK გაქვს,
-        ავტორის სახელსაც მარტივად გამოვიტანთ.
-      </p>
     </main>
   );
 }
