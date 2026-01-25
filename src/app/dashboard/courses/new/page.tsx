@@ -2,6 +2,11 @@
 // FILE: src/app/dashboard/courses/new/page.tsx
 // PURPOSE: Shared -> ახალი კურსის შექმნა (ფორმა + Server Action + Resources Upload)
 // ACCESS: admin + instructor (student არ უნდა შევუშვათ)
+// NOTES:
+// - ❌ აღარ ვინახავთ DB-ში signed URL-ს (ის იწურება)
+// - ✅ DB-ში ვინახავთ file_path-ს და url-ში ვდებ stub-ს (stable), ხოლო signed URL-ს ვქმნით ნახვის დროს
+// - ✅ Server Action form-ზე encType/method არ იწერება (Next.js თვითონ აყენებს multipart)
+// - (სურვილისამებრ) შეგიძლია დაამატო: export const runtime = "nodejs";
 // =======================================================
 
 import { redirect } from "next/navigation";
@@ -17,7 +22,7 @@ type CourseResourceInsert = {
   course_id: string;
   type: "link" | "file";
   title: string | null;
-  url: string;
+  url: string; // link: actual URL, file: stable stub (NOT signed)
   file_path: string | null;
   mime: string | null;
   size: number | null;
@@ -179,7 +184,6 @@ async function createCourseAction(formData: FormData) {
       status,
       price,
       author_id: user.id,
-
       price_label: priceLabel,
       duration,
       level,
@@ -228,7 +232,7 @@ async function createCourseAction(formData: FormData) {
     }
   }
 
-  // 8) Upload FILES + insert rows
+  // 8) Upload FILES + insert rows (DB-ში ვწერთ file_path-ს; signed URL არა)
   if (cleanFiles.length) {
     const fileRows: CourseResourceInsert[] = [];
 
@@ -248,34 +252,18 @@ async function createCourseAction(formData: FormData) {
         redirect(
           "/dashboard/courses/new?error=" +
             encodeURIComponent(
-              "ფაილის ატვირთვა ვერ მოხერხდა (" +
-                cleanName +
-                "): " +
-                uploadErr.message
+              `ფაილის ატვირთვა ვერ მოხერხდა (${cleanName}): ${uploadErr.message}`
             )
         );
       }
 
-      const { data: signed, error: signErr } = await supabase.storage
-        .from("course-assets")
-        .createSignedUrl(path, 60 * 60);
-
-      if (signErr) {
-        redirect(
-          "/dashboard/courses/new?error=" +
-            encodeURIComponent(
-              "Signed URL ვერ შეიქმნა (" + cleanName + "): " + signErr.message
-            )
-        );
-      }
-
-      const url = signed?.signedUrl ?? `storage://course-assets/${path}`;
+      const stableUrl = `storage://course-assets/${path}`;
 
       fileRows.push({
         course_id: courseId,
         type: "file",
         title: cleanName,
-        url,
+        url: stableUrl,
         file_path: path,
         mime: f.type || null,
         size: f.size || null,
@@ -355,12 +343,15 @@ export default async function CourseNewPage({
         </div>
       ) : null}
 
+      {/* ✅ IMPORTANT: Server Action form-ზე encType/method არ ვუთითებთ */}
       <form action={createCourseAction} className="mt-6 grid gap-4">
         {/* =========================
             SECTION 1: BASIC
            ========================= */}
         <section className="card p-4 md:p-5">
-          <h2 className="text-base font-semibold text-white/90">ძირითადი ინფორმაცია</h2>
+          <h2 className="text-base font-semibold text-white/90">
+            ძირითადი ინფორმაცია
+          </h2>
           <p className="mt-1 text-sm text-white/60">
             ის რაც ბარათზე და preview-ზე გამოჩნდება.
           </p>
@@ -381,7 +372,10 @@ export default async function CourseNewPage({
             </div>
 
             <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-description">
+              <label
+                className="text-sm text-white/80"
+                htmlFor="course-description"
+              >
                 მოკლე აღწერა
               </label>
               <textarea
@@ -390,7 +384,6 @@ export default async function CourseNewPage({
                 name="description"
                 aria-label="მოკლე აღწერა"
                 placeholder="მოკლე აღწერა (ბარათზე/preview-ზე გამოჩნდება)"
-                // ნაკლები “ჩაღრმავება”, ნაკლები სქროლი
                 rows={4}
               />
             </div>
@@ -408,7 +401,10 @@ export default async function CourseNewPage({
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-price-label">
+              <label
+                className="text-sm text-white/80"
+                htmlFor="course-price-label"
+              >
                 ტიპი (უფასო/ფასიანი)
               </label>
               <select
@@ -443,7 +439,10 @@ export default async function CourseNewPage({
 
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-duration">
+              <label
+                className="text-sm text-white/80"
+                htmlFor="course-duration"
+              >
                 ხანგრძლივობა
               </label>
               <input
@@ -514,7 +513,9 @@ export default async function CourseNewPage({
             SECTION 3: CONTENT
            ========================= */}
         <section className="card p-4 md:p-5">
-          <h2 className="text-base font-semibold text-white/90">კურსის დეტალები</h2>
+          <h2 className="text-base font-semibold text-white/90">
+            კურსის დეტალები
+          </h2>
           <p className="mt-1 text-sm text-white/60">
             ეს გამოჩნდება “დეტალებში”: ვისთვისაა, რას ისწავლი, თემები და ა.შ.
           </p>
@@ -536,7 +537,10 @@ export default async function CourseNewPage({
             </div>
 
             <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-outcomes">
+              <label
+                className="text-sm text-white/80"
+                htmlFor="course-outcomes"
+              >
                 რას ისწავლი (თითო ხაზი — 1 პუნქტი)
               </label>
               <textarea
@@ -546,9 +550,7 @@ export default async function CourseNewPage({
                 required
                 aria-label="რას ისწავლი"
                 rows={6}
-                placeholder={
-                  "მაგ:\nHTML სტრუქტურა\nCSS layout\nResponsive UI"
-                }
+                placeholder={"მაგ:\nHTML სტრუქტურა\nCSS layout\nResponsive UI"}
               />
             </div>
 
@@ -563,14 +565,15 @@ export default async function CourseNewPage({
                 required
                 aria-label="თემები / სილაბუსი"
                 rows={6}
-                placeholder={
-                  "მაგ:\nHTML Basics\nCSS Basics\nFlex/Grid"
-                }
+                placeholder={"მაგ:\nHTML Basics\nCSS Basics\nFlex/Grid"}
               />
             </div>
 
             <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-requirements">
+              <label
+                className="text-sm text-white/80"
+                htmlFor="course-requirements"
+              >
                 წინაპირობები (optional, თითო ხაზი — 1 პუნქტი)
               </label>
               <textarea
@@ -596,7 +599,10 @@ export default async function CourseNewPage({
 
           <div className="mt-4 grid gap-3">
             <div className="grid gap-1.5">
-              <label className="text-sm text-white/80" htmlFor="course-resource-links">
+              <label
+                className="text-sm text-white/80"
+                htmlFor="course-resource-links"
+              >
                 მასალების ლინკები (optional)
               </label>
               <textarea
@@ -626,8 +632,8 @@ export default async function CourseNewPage({
                 title="ფაილების ატვირთვა"
               />
               <p className="text-xs text-white/60">
-                ატვირთე PDF/ZIP/სურათი/ვიდეო. დიდი ვიდეოებისთვის შემდეგ ეტაპზე უკეთეს ატვირთვას
-                გავაკეთებთ.
+                ატვირთე PDF/ZIP/სურათი/ვიდეო. დიდი ვიდეოებისთვის შემდეგ ეტაპზე უკეთეს
+                ატვირთვას გავაკეთებთ.
               </p>
             </div>
           </div>
@@ -637,7 +643,10 @@ export default async function CourseNewPage({
             ACTIONS
            ========================= */}
         <div className="flex flex-col gap-2 md:flex-row md:justify-end">
-          <button type="submit" className="btn-primary w-full md:w-auto justify-center">
+          <button
+            type="submit"
+            className="btn-primary w-full md:w-auto justify-center"
+          >
             შექმნა
           </button>
         </div>

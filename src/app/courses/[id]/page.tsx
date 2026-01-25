@@ -73,8 +73,8 @@ export default async function CourseDetailsPage({
 
   if (error || !course) return notFound();
 
-  // Optional: resources (links/files)
-  const { data: resources } = await supabase
+  // Resources (links/files)
+  const { data: resources, error: resErr } = await supabase
     .from("course_resources")
     .select("id,course_id,type,title,url,file_path,mime,size,created_at")
     .eq("course_id", id)
@@ -93,6 +93,26 @@ export default async function CourseDetailsPage({
 
   const links = (resources ?? []).filter((r) => r.type === "link");
   const files = (resources ?? []).filter((r) => r.type === "file");
+
+  // ✅ Create signed URLs at render-time (so links won't expire in DB)
+  // Map: resource_id -> signedUrl
+  const signedFileMap = new Map<string, string>();
+
+  await Promise.all(
+    files.map(async (r) => {
+      if (!r.file_path) return;
+
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("course-assets")
+        .createSignedUrl(r.file_path, 60 * 30); // 30 minutes
+
+      if (!signErr && signed?.signedUrl) {
+        signedFileMap.set(r.id, signed.signedUrl);
+      }
+    })
+  );
+
+  const hasResources = links.length > 0 || files.length > 0 || !!resErr;
 
   return (
     <main className="container-page section-pad">
@@ -119,7 +139,8 @@ export default async function CourseDetailsPage({
           </h1>
 
           <p className="mt-2 text-sm leading-relaxed text-white/70">
-            {(course.description ?? "").trim() || "მოკლე აღწერა დამატებული არ არის."}
+            {(course.description ?? "").trim() ||
+              "მოკლე აღწერა დამატებული არ არის."}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -143,12 +164,14 @@ export default async function CourseDetailsPage({
         <aside className="card md:w-[360px]">
           <h2 className="text-lg font-semibold text-white/95">Public preview</h2>
           <p className="mt-2 text-sm text-white/70">
-            სრული გაკვეთილები ხელმისაწვდომი გახდება ავტორიზაციისა და (შემდგომში) გადახდის შემდეგ.
+            სრული გაკვეთილები ხელმისაწვდომი გახდება ავტორიზაციისა და (შემდგომში)
+            გადახდის შემდეგ.
           </p>
 
           {priceLabel === "ფასიანი" ? (
             <p className="mt-3 text-sm text-white/75">
-              ფასი: <span className="text-white/90">{course.price ?? "—"}</span>
+              ფასი:{" "}
+              <span className="text-white/90">{course.price ?? "—"}</span>
             </p>
           ) : null}
         </aside>
@@ -200,21 +223,23 @@ export default async function CourseDetailsPage({
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-white/70">არ არის აუცილებელი (ან არ არის შევსებული).</p>
+            <p className="mt-3 text-sm text-white/70">
+              არ არის აუცილებელი (ან არ არის შევსებული).
+            </p>
           )}
         </section>
       </div>
 
-      {/* ===== Resources (optional) ===== */}
-      {(links.length || files.length) ? (
+      {/* ===== Resources ===== */}
+      {hasResources ? (
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           <section className="card">
             <h2 className="text-lg font-semibold text-white/95">რესურსები (ლინკები)</h2>
+
             {links.length ? (
               <ul className="mt-3 space-y-2 text-sm text-white/70">
                 {links.map((r) => (
-                 <li key={r.id} className="wrap-break-word">
-
+                  <li key={r.id} className="wrap-break-word">
                     •{" "}
                     <a
                       className="underline underline-offset-4 hover:text-white"
@@ -234,18 +259,46 @@ export default async function CourseDetailsPage({
 
           <section className="card">
             <h2 className="text-lg font-semibold text-white/95">მასალები (ფაილები)</h2>
+
             {files.length ? (
               <ul className="mt-3 space-y-2 text-sm text-white/70">
-                {files.map((r) => (
-                  <li key={r.id} className="wrap-break-word">
+                {files.map((r) => {
+                  const href = signedFileMap.get(r.id) || null;
+                  const label = r.title?.trim() || r.file_path || "ფაილი";
 
-                    • {r.title?.trim() || r.file_path || "ფაილი"}
-                  </li>
-                ))}
+                  return (
+                    <li key={r.id} className="wrap-break-word">
+                      •{" "}
+                      {href ? (
+                        <a
+                          className="underline underline-offset-4 hover:text-white"
+                          href={href}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {label}
+                        </a>
+                      ) : (
+                        <span className="text-white/60">
+                          {label}{" "}
+                          <span className="text-xs text-white/40">
+                            (ლინკი ვერ შეიქმნა)
+                          </span>
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="mt-3 text-sm text-white/70">ფაილები არ არის დამატებული.</p>
             )}
+
+            {resErr ? (
+              <p className="mt-3 text-xs text-red-200">
+                რესურსების წაკითხვა ვერ მოხერხდა: {resErr.message}
+              </p>
+            ) : null}
           </section>
         </div>
       ) : null}
