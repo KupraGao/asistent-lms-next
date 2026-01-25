@@ -9,7 +9,7 @@
 - [ ] Pagination (courses / students / instructors)
 
 ## Instructor Dashboard
-- [ ] ჩემი კურსების სია
+- [x] ჩემი კურსების სია
 - [ ] სტუდენტების ნახვა თითო კურსზე
 - [ ] კურსის draft / publish კონტროლი
 
@@ -24,6 +24,6 @@
 - [ ] გადახდის ინტეგრაცია
 
 ## UX / UI
-- [ ] Empty states
+- [x] Empty states
 - [ ] Loading states
 - [ ] Error boundaries
