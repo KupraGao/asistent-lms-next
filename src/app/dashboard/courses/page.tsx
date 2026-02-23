@@ -5,6 +5,9 @@
 // - Instructor/Student: Published-only catalog
 // NOTES:
 // - /dashboard/courses => list + search + status filter (admin can use status filter)
+// - Author shown on a separate line (admin only)
+// - Added students count via enrollments(count)
+// - Added "სტუდენტები: X" ACTION button next to edit/draft/delete (admin only actions)
 // =======================================================
 
 import Link from "next/link";
@@ -28,6 +31,9 @@ type CourseRow = {
 
   // ✅ ზოგჯერ Supabase აბრუნებს ობიექტს, ზოგჯერ array-ს — ორივეს გავუძლებთ
   author?: { full_name: string | null } | { full_name: string | null }[] | null;
+
+  // ✅ students count (via enrollments(count))
+  enrollments?: { count: number }[] | null;
 };
 
 function firstParam(v: string | string[] | undefined): string {
@@ -92,7 +98,17 @@ export default async function DashboardCoursesPage({
   // -----------------------------
   let query = supabase
     .from("courses")
-    .select("id,title,status,author_id,updated_at,author:profiles(full_name)")
+    .select(
+      `
+      id,
+      title,
+      status,
+      author_id,
+      updated_at,
+      author:profiles(full_name),
+      enrollments(count)
+    `
+    )
     .order("updated_at", { ascending: false });
 
   if (!isAdmin) {
@@ -172,6 +188,7 @@ export default async function DashboardCoursesPage({
           courses.map((c) => {
             const authorName = getAuthorName(c.author);
             const updatedLabel = formatUpdatedAt(c.updated_at);
+            const studentsCount = c.enrollments?.[0]?.count ?? 0;
 
             return (
               <div
@@ -187,30 +204,43 @@ export default async function DashboardCoursesPage({
                     {c.title}
                   </Link>
 
+                  {/* ზედა ხაზი */}
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/55">
                     <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-white/75">
                       {c.status === "published" ? "გამოქვეყნებული" : "დრაფტი"}
                     </span>
 
                     <span className="text-white/55">განახლდა: {updatedLabel}</span>
-
-                    {isAdmin ? (
-  <span className="text-white/80 font-semibold">
-    ავტორი:{" "}
-    <span className="ml-1 text-white text-sm font-bold tracking-wide">
-      {authorName}
-    </span>
-  </span>
-) : null}
-
                   </div>
+
+                  {/* ქვედა ხაზი — ავტორი (მხოლოდ admin) */}
+                  {isAdmin ? (
+                    <div className="mt-1 text-xs text-white/70">
+                      ავტორი:
+                      <span className="ml-1 text-white text-sm font-semibold tracking-wide">
+                        {authorName}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
 
-                <CourseRowActions
-                  courseId={c.id}
-                  status={c.status === "published" ? "published" : "draft"}
-                  canManage={isAdmin}
-                />
+                {/* RIGHT ACTIONS */}
+                <div className="flex items-center gap-2">
+                  {/* Students button styled like other buttons */}
+                  <Link
+                    href={`/dashboard/my-courses/${c.id}/students`}
+                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10 disabled:opacity-60"
+                    title="სტუდენტების ნახვა"
+                  >
+                    სტუდენტები: {studentsCount}
+                  </Link>
+
+                  <CourseRowActions
+                    courseId={c.id}
+                    status={c.status === "published" ? "published" : "draft"}
+                    canManage={isAdmin}
+                  />
+                </div>
               </div>
             );
           })

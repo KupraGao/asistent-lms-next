@@ -4,6 +4,8 @@
 // NOTES:
 // - UI სტრუქტურა იგივეა რაც /dashboard/courses (row layout + actions right)
 // - აქ ავტორი არ გვჭირდება, რადგან ყველა კურსი ჩემია
+// - დამატებულია "სტუდენტები: X" ღილაკი => /dashboard/my-courses/[id]/students
+// - Added enrollments(count) to show students count
 // =======================================================
 
 import Link from "next/link";
@@ -22,6 +24,9 @@ type CourseRow = {
   status: CourseStatus | null;
   price: number | null;
   updated_at: string | null;
+
+  // students count join
+  enrollments?: { count: number | null }[] | null;
 };
 
 function formatUpdatedAt(v: string | null) {
@@ -59,11 +64,20 @@ export default async function MyCoursesPage() {
   if (!user) redirect("/auth/sign-in");
 
   // -----------------------------
-  // 3) Query (only my courses)
+  // 3) Query (only my courses) + students count
   // -----------------------------
   const { data, error } = await supabase
     .from("courses")
-    .select("id, title, status, price, updated_at")
+    .select(
+      `
+      id,
+      title,
+      status,
+      price,
+      updated_at,
+      enrollments(count)
+    `
+    )
     .eq("author_id", user.id)
     .order("updated_at", { ascending: false })
     .returns<CourseRow[]>();
@@ -102,6 +116,8 @@ export default async function MyCoursesPage() {
             const priceLabel = c.price == null ? "უფასო" : `ფასი: ${c.price}`;
             const updatedLabel = formatUpdatedAt(c.updated_at);
 
+            const studentsCount = Number(c.enrollments?.[0]?.count ?? 0);
+
             return (
               <div
                 key={c.id}
@@ -129,7 +145,16 @@ export default async function MyCoursesPage() {
                 </div>
 
                 {/* RIGHT */}
-                <CourseRowActions courseId={c.id} status={status} canManage={true} />
+                <div className="flex items-center gap-3">
+                  <Link
+                    href={`/dashboard/my-courses/${c.id}/students`}
+                    className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
+                  >
+                    სტუდენტები: {studentsCount}
+                  </Link>
+
+                  <CourseRowActions courseId={c.id} status={status} canManage={true} />
+                </div>
               </div>
             );
           })

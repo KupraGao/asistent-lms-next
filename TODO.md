@@ -10,7 +10,7 @@
 
 ## Instructor Dashboard
 - [x] ჩემი კურსების სია
-- [ ] სტუდენტების ნახვა თითო კურსზე
+- [x] სტუდენტების ნახვა თითო კურსზე
 - [x] კურსის draft / publish კონტროლი
 
 ## Student Dashboard
@@ -19,7 +19,7 @@
 - [ ] ბოლო გაკვეთილის გაგრძელება
 
 ## Payments / Enrollment
-- [ ] Enrollment ცხრილი
+- [ ] Enrollment ცხრილი (admin view)
 - [ ] ფასიანი კურსის შეზღუდვა
 - [ ] გადახდის ინტეგრაცია
 

@@ -1,34 +1,48 @@
-// src/app/dashboard/my-learning/page.tsx
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getPurchasedCourses } from "@/lib/db/enrollments";
+
+export const dynamic = "force-dynamic";
 
 export default async function MyLearningPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/sign-in");
+  const rows = await getPurchasedCourses();
 
   return (
-    <main className="container-page section-pad">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-white/95">ჩემი შეძენილი კურსები</h1>
-          <p className="mt-2 text-sm text-white/70">
-            აქ გამოჩნდება კურსები, რომლებშიც ჩარიცხული ხარ (მიმდინარე/დასრულებული).
-          </p>
+    <div className="p-6">
+      <h1 className="text-xl font-semibold">ჩემი სწავლა</h1>
+
+      {rows.length === 0 ? (
+        <p className="mt-4 text-white/70">
+          ჯერ არცერთი კურსი არ გაქვს შეძენილი/ჩაწერილი.
+        </p>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {rows.map((r) => {
+            const c = r.courses;
+            if (!c) return null;
+
+            return (
+              <Link
+                key={c.id}
+                href={`/dashboard/courses/${c.id}`}
+                className="rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-base font-medium">{c.title}</div>
+                    <div className="mt-1 text-sm text-white/70">
+                      სტატუსი: {c.status ?? "—"}
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-white/70">
+                    {c.price_label ?? (c.price != null ? `${c.price}₾` : "Free")}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
-
-        <Link
-          href="/dashboard"
-          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-        >
-          ← დეშბორდი
-        </Link>
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-        მალე დაემატება (enrollments ცხრილის ჩადგმის შემდეგ).
-      </div>
-    </main>
+      )}
+    </div>
   );
 }
