@@ -48,7 +48,9 @@ export default async function Navbar() {
           >
             კურსები
           </Link>
-          <Link href="/instructors">ინსტრუქტორები</Link>
+          <Link href="/instructors"
+          className="text-sm font-medium text-white/80 transition hover:text-white hover:underline hover:underline-offset-4"
+          >ინსტრუქტორები</Link>
 
           <Link
             href="/about"
