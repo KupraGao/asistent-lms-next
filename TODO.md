@@ -14,9 +14,9 @@
 - [x] კურსის draft / publish კონტროლი
 
 ## Student Dashboard
-- [ ] შეძენილი კურსები
-- [ ] პროგრესის ჩვენება
-- [ ] ბოლო გაკვეთილის გაგრძელება
+- [x] შეძენილი კურსები (MVP: my-learning list + data-layer join)
+- [x] პროგრესის ჩვენება (DB/დატა მზადაა, UI დაგვრჩა)
+- [x] ბოლო გაკვეთილის გაგრძელება (DB/დატა მზადაა, UI დაგვრჩა)
 
 ## Payments / Enrollment
 - [ ] Enrollment ცხრილი (admin view)
@@ -25,5 +25,5 @@
 
 ## UX / UI
 - [x] Empty states
-- [ ] Loading states
-- [ ] Error boundaries
+- [x] Loading states (dashboard routes)
+- [x] Error boundaries (dashboard error.tsx)
