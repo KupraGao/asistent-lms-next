@@ -25,6 +25,8 @@ type ProfileMini = {
 export type PurchasedRow = {
   created_at: string;
   status: string;
+  progress: number; // ✅ NEW
+  last_lesson_id: string | null; // ✅ NEW
   courses: CourseMini | null;
 };
 
@@ -38,6 +40,8 @@ export type StudentRow = {
 type PurchasedRowRaw = {
   created_at: string;
   status: string;
+  progress: number | null; // ✅ NEW
+  last_lesson_id: string | null; // ✅ NEW
   courses: CourseMini[] | CourseMini | null;
 };
 
@@ -84,6 +88,8 @@ export async function getPurchasedCourses(): Promise<PurchasedRow[]> {
       `
       created_at,
       status,
+      progress,
+      last_lesson_id,
       courses:course_id (
         id, title, status, price, price_label, duration, level, author_id
       )
@@ -99,6 +105,8 @@ export async function getPurchasedCourses(): Promise<PurchasedRow[]> {
   return raw.map((r) => ({
     created_at: r.created_at,
     status: r.status,
+    progress: r.progress ?? 0,
+    last_lesson_id: r.last_lesson_id ?? null,
     courses: firstOrNull(r.courses),
   }));
 }
@@ -141,6 +149,45 @@ export async function enrollSelf(courseId: string) {
   const { error } = await supabase
     .from("enrollments")
     .insert({ user_id: user.id, course_id: courseId, status: "active" });
+
+  if (error) throw new Error(error.message);
+  return true;
+}
+
+// ✅ NEW: student updates ONLY their own enrollment (progress + last_lesson_id)
+type EnrollmentUpdate = {
+  progress: number;
+  last_lesson_id: string | null;
+};
+
+export async function updateMyEnrollment(
+  courseId: string,
+  payload: { progress?: number; last_lesson_id?: string | null }
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const updateData: Partial<EnrollmentUpdate> = {};
+
+  if (typeof payload.progress === "number") {
+    updateData.progress = payload.progress;
+  }
+
+  if ("last_lesson_id" in payload) {
+    updateData.last_lesson_id = payload.last_lesson_id ?? null;
+  }
+
+  // nothing to update
+  if (Object.keys(updateData).length === 0) return true;
+
+  const { error } = await supabase
+    .from("enrollments")
+    .update(updateData)
+    .eq("user_id", user.id)
+    .eq("course_id", courseId);
 
   if (error) throw new Error(error.message);
   return true;
