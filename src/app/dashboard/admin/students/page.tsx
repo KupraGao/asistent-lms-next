@@ -5,6 +5,7 @@
 //   - Search (name/username/email) [ilike]
 //   - Filter (status: all/active/suspended)  (თუ გაქვს status)
 //   - Sort (created_at desc/asc, name asc)
+//   - Suspend / Activate (server action)
 // ACCESS: მხოლოდ admin
 // =======================================================
 
@@ -13,6 +14,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/auth/role";
 import AdminStudentsControls from "@/components/admin/AdminStudentsControls";
+import { setStudentStatus } from "./actions";
 
 type StudentRow = {
   id: string;
@@ -73,13 +75,12 @@ export default async function AdminStudentsPage({
     .select("id, full_name, username, role, status, created_at")
     .eq("role", "student");
 
-  // --- Filter: status (თუ გაქვს ეს ველი) ---
+  // --- Filter: status ---
   if (status !== "all") {
     query = query.eq("status", status);
   }
 
   // --- Search: full_name OR username ---
-  // NOTE: `or()` სინტაქსით ვაკეთებთ მრავალ ველზე ძიებას
   if (qRaw) {
     const like = `%${qRaw}%`;
     query = query.or(`full_name.ilike.${like},username.ilike.${like}`);
@@ -104,7 +105,11 @@ export default async function AdminStudentsPage({
     u.full_name?.trim() || (u.username ? `@${u.username}` : null) || "სტუდენტი";
 
   const statusLabel = (s: string | null) =>
-    s === "active" ? "აქტიური" : s === "suspended" ? "სუსპენდირებული" : (s ?? "—");
+    s === "active"
+      ? "აქტიური"
+      : s === "suspended"
+      ? "სუსპენდირებული"
+      : s ?? "—";
 
   return (
     <main className="container-page section-pad">
@@ -112,7 +117,9 @@ export default async function AdminStudentsPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-white/95">სტუდენტები</h1>
-          <p className="mt-2 text-sm text-white/70">ყველა სტუდენტის სია (Admin).</p>
+          <p className="mt-2 text-sm text-white/70">
+            ყველა სტუდენტის სია (Admin).
+          </p>
         </div>
 
         <Link
@@ -135,51 +142,76 @@ export default async function AdminStudentsPage({
       {/* List */}
       <div className="mt-4 text-sm text-white/70">
         ნაჩვენებია:{" "}
-        <span className="text-white/90 font-semibold">{rows.length}</span> სტუდენტი
+        <span className="text-white/90 font-semibold">{rows.length}</span>{" "}
+        სტუდენტი
       </div>
 
       <div className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/5">
-        {rows.map((u) => (
-          <div
-            key={u.id}
-            className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-white/90">
-                {nameOf(u)}
-                {u.username ? (
-                  <span className="ml-2 text-xs font-semibold text-white/50">
-                    • @{u.username}
-                  </span>
-                ) : null}
+        {rows.map((u) => {
+          const isSuspended = u.status === "suspended";
+
+          return (
+            <div
+              key={u.id}
+              className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-white/90">
+                  {nameOf(u)}
+                  {u.username ? (
+                    <span className="ml-2 text-xs font-semibold text-white/50">
+                      • @{u.username}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="mt-1 text-xs text-white/60">
+                  სტატუსი:{" "}
+                  <span className="text-white/80">{statusLabel(u.status)}</span>
+                  {" • "}
+                  შექმნა:{" "}
+                  <span className="text-white/80">{u.created_at ?? "—"}</span>
+                </div>
               </div>
 
-              <div className="mt-1 text-xs text-white/60">
-                სტატუსი:{" "}
-                <span className="text-white/80">{statusLabel(u.status)}</span>
-                {" • "}
-                შექმნა:{" "}
-                <span className="text-white/80">{u.created_at ?? "—"}</span>
+              {/* Actions */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
+                >
+                  ნახვა
+                </button>
+
+                {isSuspended ? (
+                  // ✅ Activate
+                  <form action={setStudentStatus}>
+                    <input type="hidden" name="userId" value={u.id} />
+                    <input type="hidden" name="status" value="active" />
+                    <button
+                      type="submit"
+                      className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
+                    >
+                      გააქტიურება
+                    </button>
+                  </form>
+                ) : (
+                  // ✅ Suspend
+                  <form action={setStudentStatus}>
+                    <input type="hidden" name="userId" value={u.id} />
+                    <input type="hidden" name="status" value="suspended" />
+                    <button
+                      type="submit"
+                      className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-100 hover:bg-red-500/15"
+                    >
+                      სუსპენდირება
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
-
-            {/* Placeholder actions */}
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
-              >
-                ნახვა
-              </button>
-              <button
-                type="button"
-                className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10"
-              >
-                სუსპენდირება
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
         {rows.length === 0 && !error ? (
           <div className="p-4 text-sm text-white/60">სტუდენტები ვერ მოიძებნა.</div>

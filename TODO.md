@@ -4,7 +4,7 @@
 - [x] კურსის ნახვა (detail page)
 - [x] კურსის რედაქტირება
 - [x] კურსის წაშლა (confirm + permission)
-- [ ] სტუდენტის სუსპენდირება
+- [x] სტუდენტის სუსპენდირება
 - [ ] ინსტრუქტორის სტატუსის შეცვლა
 - [ ] Pagination (courses / students / instructors)
 
